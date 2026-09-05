@@ -1,0 +1,41 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --radius-sm: calc(var(--radius) * .6);
+  --radius-md: calc(var(--radius) * .8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+}
+
+:root { color-scheme: light; --background: oklch(.975 .018 90); --foreground: oklch(.22 .035 155); --card: oklch(.995 .008 90); --card-foreground: oklch(.22 .035 155); --primary: oklch(.42 .12 155); --primary-foreground: oklch(.98 .012 90); --muted: oklch(.94 .025 90); --muted-foreground: oklch(.48 .035 155); --border: oklch(.87 .03 90); --input: oklch(.87 .03 90); --ring: oklch(.55 .1 155); --accent: oklch(.78 .1 82); --accent-foreground: oklch(.22 .035 155); --radius: .8rem; }
+.dark { color-scheme: dark; --background: oklch(.16 .025 155); --foreground: oklch(.95 .018 90); --card: oklch(.205 .03 155); --card-foreground: oklch(.95 .018 90); --primary: oklch(.68 .11 155); --primary-foreground: oklch(.16 .025 155); --muted: oklch(.25 .03 155); --muted-foreground: oklch(.73 .025 90); --border: oklch(1 0 0 / 13%); --input: oklch(1 0 0 / 18%); --ring: oklch(.68 .11 155); --accent: oklch(.75 .1 82); --accent-foreground: oklch(.16 .025 155); }
+
+@layer base { * { @apply border-border outline-ring/50; } body { @apply bg-background text-foreground; } }
+
+/* Hide Next/Dev floating badge (development overlay) */
+div[style*="position:fixed"][style*="bottom"][style*="right"] {
+  display: none !important;
+  pointer-events: none !important;
+}
+
+/* Extra selectors for common dev badges */
+.nextjs-badge, .next-dev, .__next-dev-client, [data-nextjs] {
+  display: none !important;
+}
