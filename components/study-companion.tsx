@@ -21,7 +21,20 @@ import {
   Sun,
   Users,
 } from "lucide-react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
+import {
+  colleges,
+  departmentMap,
+  getAvailableSemestersForCollegeAndYear,
+  getAvailableYearsForCollege,
+  getCurrentStudentProfile,
+  normalizeAcademicSelection,
+  saveStudentProfile,
+  semesters,
+  signOutStudent,
+  type StudentProfile,
+} from "@/lib/student-profile"
 
 type Resource = {
   id: string
@@ -39,23 +52,18 @@ type Resource = {
   createdAt: string
 }
 
-const colleges = ["College of Engineering", "College of Applied Science"]
-const departmentMap: Record<string, string[]> = {
-  "College of Engineering": ["Software Engineering", "Information Technology", "Computer Science", "Electrical Engineering", "Civil Engineering"],
-  "College of Applied Science": ["Applied Biology", "Applied Chemistry", "Food Science and Technology", "Textile Engineering", "Geology"],
-}
-const years = ["Freshman", "Year 2", "Year 3", "Year 4", "Year 5"]
-const semesters = ["Semester 1", "Semester 2"]
 const types = ["All types", "Notes", "PPTs", "Mid Exams", "Final Exams", "Other"]
-
 const FOCUS_SECONDS = 25 * 60
 
 export function StudyCompanion() {
-  const [tab, setTab] = useState<"home" | "resources" | "dashboard">("home")
+  const router = useRouter()
+  const [tab, setTab] = useState<"home" | "resources" | "dashboard" | "profile" | "share">("home")
   const [dark, setDark] = useState(false)
   const [resources, setResources] = useState<Resource[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState("")
+  const [profile, setProfile] = useState<StudentProfile | null>(null)
+  const [ready, setReady] = useState(false)
 
   const [college, setCollege] = useState("")
   const [department, setDepartment] = useState("")
@@ -68,11 +76,40 @@ export function StudyCompanion() {
   const [running, setRunning] = useState(false)
   const [sessions, setSessions] = useState(0)
 
+  const syncProfile = useCallback(() => {
+    const currentProfile = getCurrentStudentProfile()
+    setProfile(currentProfile)
+    if (currentProfile) {
+      setCollege(currentProfile.college)
+      setDepartment(currentProfile.department)
+      setYear(currentProfile.year)
+      setSemester(currentProfile.semester)
+    }
+    setReady(true)
+  }, [])
+
+  useEffect(() => {
+    syncProfile()
+    window.addEventListener("student-profile-updated", syncProfile)
+    return () => window.removeEventListener("student-profile-updated", syncProfile)
+  }, [syncProfile])
+
   const loadResources = useCallback(async () => {
     setLoading(true)
     setLoadError("")
     try {
-      const res = await fetch("/api/resources")
+      const activeCollege = profile?.college || college
+      const activeDepartment = profile?.department || department
+      const activeYear = profile?.year || year
+      const activeSemester = profile?.semester || semester
+
+      const params = new URLSearchParams()
+      if (activeCollege) params.set("college", activeCollege)
+      if (activeDepartment) params.set("department", activeDepartment)
+      if (activeYear) params.set("year", activeYear)
+      if (activeSemester) params.set("semester", activeSemester)
+
+      const res = await fetch(`/api/resources?${params.toString()}`)
       if (!res.ok) throw new Error("Failed to load resources")
       setResources((await res.json()) as Resource[])
     } catch {
@@ -80,7 +117,7 @@ export function StudyCompanion() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [college, department, year, semester, profile])
 
   useEffect(() => {
     loadResources()
@@ -103,26 +140,66 @@ export function StudyCompanion() {
     }
   }, [seconds, running])
 
+  const activeCollege = profile?.college || college
+  const activeDepartment = profile?.department || department
+  const activeYear = profile?.year || year
+  const activeSemester = profile?.semester || semester
+
   const filtered = useMemo(
     () =>
       resources.filter(
         (r) =>
-          (!college || r.college === college) &&
-          (!department || r.department === department) &&
-          (!year || r.year === year) &&
-          (!semester || r.semester === semester) &&
+          (!activeCollege || r.college === activeCollege) &&
+          (!activeDepartment || r.department === activeDepartment) &&
+          (!activeYear || r.year === activeYear) &&
+          (!activeSemester || r.semester === activeSemester) &&
           (type === "All types" || r.type === type) &&
           [r.course, r.department, r.description || "", r.title].join(" ").toLowerCase().includes(query.toLowerCase()),
       ),
-    [resources, college, department, year, semester, type, query],
+    [resources, activeCollege, activeDepartment, activeYear, activeSemester, type, query],
   )
 
   const choose = (kind: string, value: string) => {
+    const nextSelection = normalizeAcademicSelection(
+      kind === "college" ? value : college || profile?.college || "",
+      kind === "department" ? value : department || profile?.department || "",
+      kind === "year" ? value : year || profile?.year || "",
+      kind === "semester" ? value : semester || profile?.semester || "",
+    )
+
+    if (profile && (kind === "college" || kind === "department" || kind === "year" || kind === "semester")) {
+      const nextProfile: StudentProfile = {
+        ...profile,
+        college: kind === "college" ? nextSelection.college : profile.college,
+        department: kind === "department" ? nextSelection.department : profile.department,
+        year: kind === "year" ? nextSelection.year : profile.year,
+        semester: kind === "semester" ? nextSelection.semester : profile.semester,
+      }
+
+      if (kind === "college") {
+        nextProfile.department = nextSelection.department
+        nextProfile.year = nextSelection.year
+        nextProfile.semester = nextSelection.semester
+      }
+
+      if (kind === "year") {
+        nextProfile.semester = nextSelection.semester
+      }
+
+      saveStudentProfile(nextProfile)
+      setProfile(nextProfile)
+      setCollege(nextProfile.college)
+      setDepartment(nextProfile.department)
+      setYear(nextProfile.year)
+      setSemester(nextProfile.semester)
+      return
+    }
+
     if (kind === "college") {
-      setCollege(value)
-      setDepartment("")
-      setYear("")
-      setSemester("")
+      setCollege(nextSelection.college)
+      setDepartment(nextSelection.department)
+      setYear(nextSelection.year)
+      setSemester(nextSelection.semester)
       setType("All types")
     }
     if (kind === "department") {
@@ -132,14 +209,115 @@ export function StudyCompanion() {
       setType("All types")
     }
     if (kind === "year") {
-      setYear(value)
-      setSemester("")
+      setYear(nextSelection.year)
+      setSemester(nextSelection.semester)
       setType("All types")
     }
     if (kind === "semester") setSemester(value)
   }
 
+  const handleSignOut = () => {
+    signOutStudent()
+    setProfile(null)
+    setCollege("")
+    setDepartment("")
+    setYear("")
+    setSemester("")
+    setTab("home")
+    router.push("/signin")
+  }
+
   const clock = `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`
+
+  if (!ready) {
+    return null
+  }
+
+  if (!profile) {
+    return (
+      <main className="min-h-screen bg-background text-foreground">
+        <header className="sticky top-0 z-40 border-b border-border/70 bg-background/90 backdrop-blur-xl">
+          <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-4">
+            <div className="flex items-center gap-3 text-left">
+              <span className="flex size-10 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/20">
+                <BookOpen />
+              </span>
+              <span>
+                <span className="block font-semibold tracking-tight">AASTU Muslim Sisters</span>
+                <span className="block text-xs text-muted-foreground">Learn with purpose</span>
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="icon" aria-label="Toggle theme" onClick={() => setDark((v) => !v)}>
+                {dark ? <Sun /> : <Moon />}
+              </Button>
+            </div>
+          </div>
+        </header>
+
+        <div className="mx-auto max-w-7xl px-5 py-20 md:py-28">
+          <div className="relative overflow-hidden rounded-[2rem] border border-border bg-card p-8 shadow-xl md:p-12">
+            <div className="grid items-center gap-10 md:grid-cols-[1.1fr_.9fr]">
+              <div>
+                <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1.5 text-sm text-primary">
+                  <Sparkles className="size-4" />
+                  Your academic corner at AASTU
+                </div>
+                <h1 className="max-w-3xl text-balance text-5xl font-semibold leading-[1.05] tracking-[-0.04em] md:text-7xl">
+                  Study steadily.
+                  <br />
+                  <span className="text-primary">Grow together.</span>
+                </h1>
+                <p className="mt-6 max-w-xl text-pretty text-lg leading-8 text-muted-foreground">
+                  A calm, trusted space for Muslim sisters at AASTU to find notes, share what they know, and build a study rhythm that lasts.
+                </p>
+                <div className="mt-8 flex flex-wrap gap-3">
+                  <Button size="lg" onClick={() => router.push("/signin")}>
+                    Sign in
+                  </Button>
+                  <Button size="lg" variant="outline" onClick={() => router.push("/signup")}>
+                    Sign up
+                  </Button>
+                </div>
+              </div>
+
+              <div className="relative">
+                <div className="rounded-[2rem] bg-primary p-6 text-primary-foreground shadow-2xl shadow-primary/20 md:p-8">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-sm opacity-75">A little progress</p>
+                      <p className="mt-1 text-3xl font-semibold">Every day counts.</p>
+                    </div>
+                    <Flame className="size-7" />
+                  </div>
+                  <div className="mt-10 rounded-3xl bg-primary-foreground/10 p-5">
+                    <div className="flex items-center justify-between text-sm">
+                      <span>Weekly focus</span>
+                      <span>68%</span>
+                    </div>
+                    <div className="mt-3 h-2 rounded-full bg-primary-foreground/20">
+                      <div className="h-2 w-[68%] rounded-full bg-primary-foreground" />
+                    </div>
+                  </div>
+                </div>
+                <div className="absolute -bottom-5 -left-5 rounded-2xl border border-border bg-card p-4 shadow-xl">
+                  <div className="flex items-center gap-3">
+                    <div className="flex size-10 items-center justify-center rounded-xl bg-muted">
+                      <Users className="size-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold">Shared by sisters</p>
+                      <p className="text-xs text-muted-foreground">Notes that help you move forward</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    )
+  }
 
   return (
     <main className="min-h-screen bg-background text-foreground">
@@ -159,6 +337,7 @@ export function StudyCompanion() {
               [
                 ["home", "Home"],
                 ["resources", "Resources"],
+                ["share", "Share"],
                 ["dashboard", "My dashboard"],
               ] as const
             ).map(([key, label]) => (
@@ -172,9 +351,23 @@ export function StudyCompanion() {
             ))}
           </nav>
           <div className="flex items-center gap-2">
+            <button
+              onClick={handleSignOut}
+              className="rounded-full border border-border bg-background px-3 py-2 text-sm font-medium transition hover:border-primary/50"
+            >
+              Sign out
+            </button>
             <Button variant="ghost" size="icon" aria-label="Toggle theme" onClick={() => setDark((v) => !v)}>
               {dark ? <Sun /> : <Moon />}
             </Button>
+            <button
+              aria-label="Open profile"
+              onClick={() => setTab("profile")}
+              className="flex size-10 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground shadow-md shadow-primary/20"
+              title="Profile"
+            >
+              {profile.name?.charAt(0)?.toUpperCase() || "S"}
+            </button>
           </div>
         </div>
       </header>
@@ -183,10 +376,10 @@ export function StudyCompanion() {
 
       {tab === "resources" && (
         <Resources
-          college={college}
-          department={department}
-          year={year}
-          semester={semester}
+          college={activeCollege}
+          department={activeDepartment}
+          year={activeYear}
+          semester={activeSemester}
           type={type}
           query={query}
           filtered={filtered}
@@ -201,6 +394,19 @@ export function StudyCompanion() {
         />
       )}
 
+      {tab === "share" && (
+        <ShareResource
+          college={activeCollege}
+          department={activeDepartment}
+          year={activeYear}
+          semester={activeSemester}
+          onSaved={() => {
+            loadResources()
+            setTab("resources")
+          }}
+        />
+      )}
+
       {tab === "dashboard" && (
         <Dashboard
           clock={clock}
@@ -210,7 +416,21 @@ export function StudyCompanion() {
           setSessions={setSessions}
           seconds={seconds}
           setSeconds={setSeconds}
-          resourceCount={resources.length}
+          resourceCount={filtered.length}
+        />
+      )}
+
+      {tab === "profile" && profile && (
+        <ProfileEditor
+          profile={profile}
+          onSaved={(nextProfile) => {
+            setProfile(nextProfile)
+            setCollege(nextProfile.college)
+            setDepartment(nextProfile.department)
+            setYear(nextProfile.year)
+            setSemester(nextProfile.semester)
+            setTab("resources")
+          }}
         />
       )}
 
@@ -310,6 +530,161 @@ function Step({ label, value, options, onChange }: { label: string; value: strin
   )
 }
 
+function ProfileEditor({
+  profile,
+  onSaved,
+}: {
+  profile: StudentProfile
+  onSaved: (profile: StudentProfile) => void
+}) {
+  const [form, setForm] = useState<StudentProfile>(profile)
+  const [message, setMessage] = useState("")
+
+  const handleChange = (field: keyof StudentProfile, value: string) => {
+    setForm((current) => {
+      if (field === "college") {
+        const isFreshman = value === "Freshman"
+        return {
+          ...current,
+          college: value,
+          department: isFreshman ? "General Freshman" : "",
+          year: isFreshman ? "Year 1" : "",
+          semester: isFreshman ? "Semester 1" : "",
+        }
+      }
+
+      return {
+        ...current,
+        [field]: value,
+      }
+    })
+  }
+
+  const handleSave = () => {
+    const saved = saveStudentProfile({
+      ...form,
+      name: form.name.trim(),
+      email: form.email.trim(),
+      password: form.password,
+      college: form.college.trim(),
+      department: form.department.trim(),
+      year: form.year.trim(),
+      semester: form.semester.trim(),
+    })
+    setMessage("Profile updated successfully.")
+    onSaved(saved)
+  }
+
+  return (
+    <section className="mx-auto max-w-4xl px-5 py-10">
+      <div className="mb-6 flex items-end justify-between gap-4">
+        <div>
+          <p className="text-sm font-medium text-primary">Student profile</p>
+          <h1 className="mt-2 text-4xl font-semibold tracking-tight">Update your academic details</h1>
+        </div>
+        <div className="rounded-full border border-border bg-card px-3 py-2 text-sm">{profile.email}</div>
+      </div>
+
+      <div className="rounded-3xl border border-border bg-card p-6 shadow-sm">
+        <div className="grid gap-4 md:grid-cols-2">
+          <label className="text-sm md:col-span-2">
+            Full name
+            <input
+              value={form.name}
+              onChange={(e) => handleChange("name", e.target.value)}
+              className="mt-1 h-11 w-full rounded-xl border border-input bg-background px-3 outline-none focus:ring-2 focus:ring-primary/30"
+            />
+          </label>
+
+          <label className="text-sm md:col-span-2">
+            Email
+            <input
+              type="email"
+              value={form.email}
+              onChange={(e) => handleChange("email", e.target.value)}
+              className="mt-1 h-11 w-full rounded-xl border border-input bg-background px-3 outline-none focus:ring-2 focus:ring-primary/30"
+            />
+          </label>
+
+          <label className="text-sm md:col-span-2">
+            Password
+            <input
+              type="password"
+              value={form.password}
+              onChange={(e) => handleChange("password", e.target.value)}
+              className="mt-1 h-11 w-full rounded-xl border border-input bg-background px-3 outline-none focus:ring-2 focus:ring-primary/30"
+            />
+          </label>
+
+          <label className="text-sm">
+            College
+            <select
+              value={form.college}
+              onChange={(e) => handleChange("college", e.target.value)}
+              className="mt-1 h-11 w-full rounded-xl border border-input bg-background px-3 outline-none focus:ring-2 focus:ring-primary/30"
+            >
+              <option value="">Choose college</option>
+              {colleges.map((college) => (
+                <option key={college} value={college}>{college}</option>
+              ))}
+            </select>
+          </label>
+
+          <label className="text-sm">
+            Department
+            <select
+              value={form.department}
+              onChange={(e) => handleChange("department", e.target.value)}
+              disabled={!form.college}
+              className="mt-1 h-11 w-full rounded-xl border border-input bg-background px-3 outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-50"
+            >
+              <option value="">Choose department</option>
+              {(departmentMap[form.college] || []).map((department) => (
+                <option key={department} value={department}>{department}</option>
+              ))}
+            </select>
+          </label>
+
+          {form.college === "Freshman" && (
+            <label className="text-sm">
+              Year
+              <select
+                value={form.year}
+                onChange={(e) => handleChange("year", e.target.value)}
+                className="mt-1 h-11 w-full rounded-xl border border-input bg-background px-3 outline-none focus:ring-2 focus:ring-primary/30"
+              >
+                {getAvailableYearsForCollege(form.college).map((year) => (
+                  <option key={year} value={year}>{year}</option>
+                ))}
+              </select>
+            </label>
+          )}
+
+          {form.college === "Freshman" && (
+            <label className="text-sm">
+              Semester
+              <select
+                value={form.semester}
+                onChange={(e) => handleChange("semester", e.target.value)}
+                className="mt-1 h-11 w-full rounded-xl border border-input bg-background px-3 outline-none focus:ring-2 focus:ring-primary/30"
+              >
+                {getAvailableSemestersForCollegeAndYear(form.college, form.year).map((semester) => (
+                  <option key={semester} value={semester}>{semester}</option>
+                ))}
+              </select>
+            </label>
+          )}
+        </div>
+
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm text-muted-foreground">{message || "Changing your semester updates the resources shown to you."}</p>
+          <Button onClick={handleSave}>Save profile</Button>
+        </div>
+      </div>
+    </section>
+  )
+}
+
 function Resources(props: {
   college: string
   department: string
@@ -327,102 +702,18 @@ function Resources(props: {
 }) {
   const { college, department, year, semester, type, query, filtered, loading, loadError, setQuery, setType, choose, onSaved } = props
 
-  const [showShare, setShowShare] = useState(false)
-  const [shareLoading, setShareLoading] = useState(false)
-  const [shareMsg, setShareMsg] = useState("")
-
-  const [shareCollege, setShareCollege] = useState("")
-  const [shareDepartment, setShareDepartment] = useState("")
-  const [shareYear, setShareYear] = useState("")
-  const [shareSemester, setShareSemester] = useState("")
-  const [shareCourse, setShareCourse] = useState("")
-  const [shareType, setShareType] = useState("")
-  const [shareDescription, setShareDescription] = useState("")
-  const [shareFile, setShareFile] = useState<File | null>(null)
-  const fileInputRef = useRef<HTMLInputElement | null>(null)
-
-  const onDropFile = (e: React.DragEvent) => {
-    e.preventDefault()
-    const f = e.dataTransfer.files?.[0]
-    if (f) setShareFile(f)
-  }
-
-  const onDragOver = (e: React.DragEvent) => e.preventDefault()
-
-  const submitShare = async () => {
-    setShareMsg("")
-    const missing = [] as string[]
-    if (!shareCollege) missing.push('college')
-    if (!shareDepartment) missing.push('department')
-    if (!shareYear) missing.push('year')
-    if (!shareSemester) missing.push('semester')
-    if (!shareCourse || !String(shareCourse).trim()) missing.push('course')
-    if (!shareType) missing.push('type')
-    if (!shareFile) missing.push('file')
-    if (missing.length > 0) {
-      setShareMsg(`Missing: ${missing.join(', ')}`)
-      return
-    }
-    setShareLoading(true)
-    try {
-      // upload is required
-      let fileMeta: { fileName: string; fileUrl: string; mimeType?: string } | null = null
-      const fd = new FormData()
-      fd.append('file', shareFile as Blob)
-      const up = await fetch('/api/upload', { method: 'POST', body: fd })
-      if (!up.ok) throw new Error('Upload failed')
-      fileMeta = await up.json()
-      const res = await fetch('/api/resources', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          college: shareCollege,
-          department: shareDepartment,
-          year: shareYear,
-          semester: shareSemester,
-          course: shareCourse,
-          type: shareType,
-          description: shareDescription,
-          fileName: fileMeta?.fileName,
-          fileUrl: fileMeta?.fileUrl,
-          mimeType: fileMeta?.mimeType,
-        }),
-      })
-      if (!res.ok) {
-        const data = await res.json().catch(() => null)
-        setShareMsg(data?.error || 'Could not add resource')
-      } else {
-        setShareMsg('Thanks — resource shared!')
-        setShowShare(false)
-        setShareCollege('')
-        setShareDepartment('')
-        setShareYear('')
-        setShareSemester('')
-        setShareCourse('')
-        setShareType('')
-        setShareDescription('')
-        setShareFile(null)
-        onSaved()
-      }
-    } catch (err) {
-      setShareMsg('Could not add resource')
-    } finally {
-      setShareLoading(false)
-    }
-  }
-
   const handleDelete = async (id: string) => {
-    if (!confirm('Delete this resource?')) return
+    if (!confirm("Delete this resource?")) return
     try {
-      const res = await fetch(`/api/resources?id=${encodeURIComponent(id)}`, { method: 'DELETE' })
+      const res = await fetch(`/api/resources?id=${encodeURIComponent(id)}`, { method: "DELETE" })
       if (res.status === 204 || res.ok) {
         onSaved()
         return
       }
       const detail = await res.json().catch(() => null)
-      alert(detail?.error || 'Could not delete resource')
+      alert(detail?.error || "Could not delete resource")
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Could not delete resource')
+      alert(err instanceof Error ? err.message : "Could not delete resource")
     }
   }
 
@@ -431,7 +722,7 @@ function Resources(props: {
       <div className="max-w-2xl">
         <p className="text-sm font-medium text-primary">Resource library</p>
         <h1 className="mt-2 text-4xl font-semibold tracking-tight md:text-5xl">Find exactly what you need.</h1>
-        <p className="mt-3 leading-7 text-muted-foreground">Start with your college and narrow your way to the right study material.</p>
+        <p className="mt-3 leading-7 text-muted-foreground">Your academic path is already saved to your profile, so the right resources show up automatically.</p>
       </div>
 
       <div className="mt-10 rounded-3xl border border-border bg-card p-5 shadow-sm md:p-7">
@@ -454,8 +745,8 @@ function Resources(props: {
         <div className="mt-7 grid gap-5 md:grid-cols-4">
           <Step label="College" value={college} options={colleges} onChange={(v) => choose("college", v)} />
           {college && <Step label="Department" value={department} options={departmentMap[college]} onChange={(v) => choose("department", v)} />}
-          {department && <Step label="Year" value={year} options={years} onChange={(v) => choose("year", v)} />}
-          {year && <Step label="Semester" value={semester} options={semesters} onChange={(v) => choose("semester", v)} />}
+          {college === "Freshman" && <Step label="Year" value={year} options={getAvailableYearsForCollege(college)} onChange={(v) => choose("year", v)} />}
+          {college === "Freshman" && <Step label="Semester" value={semester} options={getAvailableSemestersForCollegeAndYear(college, year)} onChange={(v) => choose("semester", v)} />}
         </div>
         {semester && (
           <div className="mt-6 border-t border-border pt-6">
@@ -480,87 +771,9 @@ function Resources(props: {
       <div className="mt-10 flex flex-col justify-between gap-4 md:flex-row md:items-center">
         <div>
           <h2 className="text-2xl font-semibold">{college ? `${college.replace("College of ", "")} resources` : "Choose a college to begin"}</h2>
-          <p className="mt-1 text-sm text-muted-foreground">{college ? `${filtered.length} resources matched your path` : 'Your library will appear here after you choose your academic path.'}</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" onClick={() => setShowShare(s => !s)}>Share a resource</Button>
+          <p className="mt-1 text-sm text-muted-foreground">{college ? `${filtered.length} resources matched your path` : "Your library will appear here after you choose your academic path."}</p>
         </div>
       </div>
-
-      {showShare && (
-        <div className="mt-6 rounded-xl border border-border bg-card p-4">
-          <div className="grid gap-3 md:grid-cols-2">
-            <label className="text-sm">
-              College
-              <select className="mt-1 block w-full" value={shareCollege} onChange={(e) => setShareCollege(e.target.value)}>
-                <option value="">Choose college</option>
-                {colleges.map((c) => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-              </select>
-            </label>
-            <label className="text-sm">
-              Department
-              <select className="mt-1 block w-full" value={shareDepartment} onChange={(e) => setShareDepartment(e.target.value)}>
-                <option value="">Choose department</option>
-                {(departmentMap[shareCollege] || []).map((d) => (
-                  <option key={d} value={d}>{d}</option>
-                ))}
-              </select>
-            </label>
-            <label className="text-sm">
-              Year
-              <select className="mt-1 block w-full" value={shareYear} onChange={(e) => setShareYear(e.target.value)}>
-                <option value="">Choose year</option>
-                {years.map((y) => <option key={y} value={y}>{y}</option>)}
-              </select>
-            </label>
-            <label className="text-sm">
-              Semester
-              <select className="mt-1 block w-full" value={shareSemester} onChange={(e) => setShareSemester(e.target.value)}>
-                <option value="">Choose semester</option>
-                {semesters.map((s) => <option key={s} value={s}>{s}</option>)}
-              </select>
-            </label>
-            <label className="text-sm md:col-span-2">
-              Course / Title
-              <input className="mt-1 block w-full" value={shareCourse} onChange={(e) => setShareCourse(e.target.value)} />
-            </label>
-            <label className="text-sm md:col-span-2">
-              Type
-              <select className="mt-1 block w-full" value={shareType} onChange={(e) => setShareType(e.target.value)}>
-                <option value="">Choose type</option>
-                {types.filter(t => t !== 'All types').map((t) => <option key={t} value={t}>{t}</option>)}
-              </select>
-            </label>
-            <label className="text-sm md:col-span-2">
-              Description (optional)
-              <input className="mt-1 block w-full" value={shareDescription} onChange={(e) => setShareDescription(e.target.value)} />
-            </label>
-            <label className="text-sm md:col-span-2">
-              File (required)
-              <div
-                onDrop={onDropFile}
-                onDragOver={onDragOver}
-                onClick={() => fileInputRef.current?.click()}
-                className="mt-1 flex h-28 w-full cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-border bg-background text-sm text-muted-foreground"
-              >
-                {shareFile ? (
-                  <div>{shareFile.name} ({Math.round(shareFile.size/1024)} KB)</div>
-                ) : (
-                  <div>Drop file here or click to choose</div>
-                )}
-                <input ref={fileInputRef} type="file" className="hidden" onChange={(e) => setShareFile(e.target.files ? e.target.files[0] : null)} />
-              </div>
-            </label>
-          </div>
-          <div className="mt-4 flex items-center gap-3">
-            <Button onClick={submitShare} disabled={shareLoading}>{shareLoading ? 'Sharing…' : 'Share'}</Button>
-            <Button variant="outline" onClick={() => setShowShare(false)}>Cancel</Button>
-            {shareMsg && <span className="text-sm text-muted-foreground">{shareMsg}</span>}
-          </div>
-        </div>
-      )}
 
       {college && (
         <div className="mt-5 flex flex-col gap-3 md:flex-row">
@@ -629,6 +842,204 @@ function Resources(props: {
             No resources matched your search. Try a different query.
           </div>
         )}
+      </div>
+    </div>
+  )
+}
+
+function ShareResource({
+  college,
+  department,
+  year,
+  semester,
+  onSaved,
+}: {
+  college: string
+  department: string
+  year: string
+  semester: string
+  onSaved: () => void
+}) {
+  const [shareLoading, setShareLoading] = useState(false)
+  const [shareMsg, setShareMsg] = useState("")
+
+  const [shareCollege, setShareCollege] = useState(college)
+  const [shareDepartment, setShareDepartment] = useState(department)
+  const [shareYear, setShareYear] = useState(year)
+  const [shareSemester, setShareSemester] = useState(semester)
+  const [shareCourse, setShareCourse] = useState("")
+  const [shareType, setShareType] = useState("")
+  const [shareDescription, setShareDescription] = useState("")
+  const [shareFile, setShareFile] = useState<File | null>(null)
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
+
+  useEffect(() => {
+    setShareCollege(college)
+    setShareDepartment(department)
+    setShareYear(year)
+    setShareSemester(semester)
+  }, [college, department, year, semester])
+
+  const onDropFile = (e: React.DragEvent) => {
+    e.preventDefault()
+    const f = e.dataTransfer.files?.[0]
+    if (f) setShareFile(f)
+  }
+
+  const onDragOver = (e: React.DragEvent) => e.preventDefault()
+
+  const submitShare = async () => {
+    setShareMsg("")
+    const missing = [] as string[]
+    if (!shareCollege) missing.push("college")
+    if (!shareDepartment) missing.push("department")
+    if (!shareYear) missing.push("year")
+    if (!shareSemester) missing.push("semester")
+    if (!shareCourse || !String(shareCourse).trim()) missing.push("course")
+    if (!shareType) missing.push("type")
+    if (!shareFile) missing.push("file")
+    if (missing.length > 0) {
+      setShareMsg(`Missing: ${missing.join(", ")}`)
+      return
+    }
+
+    setShareLoading(true)
+    try {
+      const fd = new FormData()
+      fd.append("file", shareFile as Blob)
+      const up = await fetch("/api/upload", { method: "POST", body: fd })
+      if (!up.ok) throw new Error("Upload failed")
+      const fileMeta = await up.json()
+      const res = await fetch("/api/resources", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          college: shareCollege,
+          department: shareDepartment,
+          year: shareYear,
+          semester: shareSemester,
+          course: shareCourse,
+          type: shareType,
+          description: shareDescription,
+          fileName: fileMeta?.fileName,
+          fileUrl: fileMeta?.fileUrl,
+          mimeType: fileMeta?.mimeType,
+        }),
+      })
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => null)
+        setShareMsg(data?.error || "Could not add resource")
+        return
+      }
+
+      setShareMsg("Thanks — resource shared!")
+      setShareCollege("")
+      setShareDepartment("")
+      setShareYear("")
+      setShareSemester("")
+      setShareCourse("")
+      setShareType("")
+      setShareDescription("")
+      setShareFile(null)
+      onSaved()
+    } catch {
+      setShareMsg("Could not add resource")
+    } finally {
+      setShareLoading(false)
+    }
+  }
+
+  return (
+    <div className="mx-auto max-w-4xl px-5 py-10">
+      <div className="max-w-2xl">
+        <p className="text-sm font-medium text-primary">Share resource</p>
+        <h1 className="mt-2 text-4xl font-semibold tracking-tight md:text-5xl">Upload what helps your sisters.</h1>
+        <p className="mt-3 leading-7 text-muted-foreground">Add notes, exams, presentations, and study materials for the right academic path.</p>
+      </div>
+
+      <div className="mt-8 rounded-3xl border border-border bg-card p-6 shadow-sm">
+        <div className="grid gap-4 md:grid-cols-2">
+          <label className="text-sm">
+            College
+            <select className="mt-1 block w-full rounded-xl border border-input bg-background px-3 py-2" value={shareCollege} onChange={(e) => setShareCollege(e.target.value)}>
+              <option value="">Choose college</option>
+              {colleges.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          </label>
+          <label className="text-sm">
+            Department
+            <select className="mt-1 block w-full rounded-xl border border-input bg-background px-3 py-2" value={shareDepartment} onChange={(e) => setShareDepartment(e.target.value)}>
+              <option value="">Choose department</option>
+              {(departmentMap[shareCollege] || []).map((d) => (
+                <option key={d} value={d}>{d}</option>
+              ))}
+            </select>
+          </label>
+          {shareCollege === "Freshman" && (
+            <label className="text-sm">
+              Year
+              <select className="mt-1 block w-full rounded-xl border border-input bg-background px-3 py-2" value={shareYear} onChange={(e) => setShareYear(e.target.value)}>
+                {getAvailableYearsForCollege(shareCollege).map((y) => <option key={y} value={y}>{y}</option>)}
+              </select>
+            </label>
+          )}
+          {shareCollege === "Freshman" && (
+            <label className="text-sm">
+              Semester
+              <select className="mt-1 block w-full rounded-xl border border-input bg-background px-3 py-2" value={shareSemester} onChange={(e) => setShareSemester(e.target.value)}>
+                {getAvailableSemestersForCollegeAndYear(shareCollege, shareYear).map((s) => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </label>
+          )}
+          <label className="text-sm md:col-span-2">
+            Course / Title
+            <input className="mt-1 block w-full rounded-xl border border-input bg-background px-3 py-2" value={shareCourse} onChange={(e) => setShareCourse(e.target.value)} />
+          </label>
+          <label className="text-sm md:col-span-2">
+            Type
+            <select className="mt-1 block w-full rounded-xl border border-input bg-background px-3 py-2" value={shareType} onChange={(e) => setShareType(e.target.value)}>
+              <option value="">Choose type</option>
+              {types.filter((t) => t !== "All types").map((t) => (
+                <option key={t} value={t}>{t}</option>
+              ))}
+            </select>
+          </label>
+          <label className="text-sm md:col-span-2">
+            Description (optional)
+            <input className="mt-1 block w-full rounded-xl border border-input bg-background px-3 py-2" value={shareDescription} onChange={(e) => setShareDescription(e.target.value)} />
+          </label>
+          <label className="text-sm md:col-span-2">
+            File (required)
+            <div
+              onDrop={onDropFile}
+              onDragOver={onDragOver}
+              onClick={() => fileInputRef.current?.click()}
+              className="mt-1 flex h-28 w-full cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-border bg-background text-sm text-muted-foreground"
+            >
+              {shareFile ? (
+                <div>
+                  {shareFile.name} ({Math.round(shareFile.size / 1024)} KB)
+                </div>
+              ) : (
+                <div>Drop file here or click to choose</div>
+              )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                className="hidden"
+                onChange={(e) => setShareFile(e.target.files ? e.target.files[0] : null)}
+              />
+            </div>
+          </label>
+        </div>
+
+        <div className="mt-6 flex items-center gap-3">
+          <Button onClick={submitShare} disabled={shareLoading}>{shareLoading ? "Sharing…" : "Share resource"}</Button>
+          {shareMsg && <span className="text-sm text-muted-foreground">{shareMsg}</span>}
+        </div>
       </div>
     </div>
   )
