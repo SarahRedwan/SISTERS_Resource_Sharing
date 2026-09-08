@@ -6,9 +6,7 @@ import { prisma } from "@/lib/prisma"
 
 const SignUpSchema = z.object({
   name: z.string().min(2, "Name required"),
-  email: z.string().email("Invalid email").refine((val) => val.endsWith("@aastu.edu.et"), {
-    message: "Must use an official AASTU email address",
-  }),
+  email: z.string().email("Invalid email"),
   password: z.string().min(8, "Password must be at least 8 characters"),
   college: z.string().min(1, "College required"),
   department: z.string().min(1, "Department required"),

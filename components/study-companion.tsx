@@ -548,8 +548,26 @@ function ProfileEditor({
           ...current,
           college: value,
           department: isFreshman ? "General Freshman" : "",
-          year: isFreshman ? "Year 1" : "",
-          semester: isFreshman ? "Semester 1" : "",
+          year: isFreshman ? "Year 1" : "Year 2",
+          semester: "Semester 1",
+        }
+      }
+
+      if (field === "department") {
+        const nextDepartment = value
+        if (current.college === "Freshman") {
+          return { ...current, department: nextDepartment, year: "Year 1", semester: "Semester 1" }
+        }
+
+        const isPreProgram = (current.college === "Engineering" && nextDepartment === "Pre Engineering") || (current.college === "Applied Science" && nextDepartment === "Pre Applied")
+        const nextYear = isPreProgram ? "Year 1" : getAvailableYearsForCollege(current.college)[0] || ""
+        const validSemesters = getAvailableSemestersForCollegeAndYear(current.college, nextYear)
+
+        return {
+          ...current,
+          department: nextDepartment,
+          year: nextYear,
+          semester: validSemesters.includes(current.semester) ? current.semester : validSemesters[0] || "",
         }
       }
 
@@ -645,7 +663,7 @@ function ProfileEditor({
             </select>
           </label>
 
-          {form.college === "Freshman" && (
+          {form.college && (
             <label className="text-sm">
               Year
               <select
@@ -653,14 +671,14 @@ function ProfileEditor({
                 onChange={(e) => handleChange("year", e.target.value)}
                 className="mt-1 h-11 w-full rounded-xl border border-input bg-background px-3 outline-none focus:ring-2 focus:ring-primary/30"
               >
-                {getAvailableYearsForCollege(form.college).map((year) => (
+                {getAvailableYearsForCollege(form.college, form.department).map((year) => (
                   <option key={year} value={year}>{year}</option>
                 ))}
               </select>
             </label>
           )}
 
-          {form.college === "Freshman" && (
+          {form.college && (
             <label className="text-sm">
               Semester
               <select
@@ -745,8 +763,8 @@ function Resources(props: {
         <div className="mt-7 grid gap-5 md:grid-cols-4">
           <Step label="College" value={college} options={colleges} onChange={(v) => choose("college", v)} />
           {college && <Step label="Department" value={department} options={departmentMap[college]} onChange={(v) => choose("department", v)} />}
-          {college === "Freshman" && <Step label="Year" value={year} options={getAvailableYearsForCollege(college)} onChange={(v) => choose("year", v)} />}
-          {college === "Freshman" && <Step label="Semester" value={semester} options={getAvailableSemestersForCollegeAndYear(college, year)} onChange={(v) => choose("semester", v)} />}
+          {college && <Step label="Year" value={year} options={getAvailableYearsForCollege(college)} onChange={(v) => choose("year", v)} />}
+          {college && <Step label="Semester" value={semester} options={getAvailableSemestersForCollegeAndYear(college, year)} onChange={(v) => choose("semester", v)} />}
         </div>
         {semester && (
           <div className="mt-6 border-t border-border pt-6">
@@ -978,7 +996,7 @@ function ShareResource({
               ))}
             </select>
           </label>
-          {shareCollege === "Freshman" && (
+          {shareCollege && (
             <label className="text-sm">
               Year
               <select className="mt-1 block w-full rounded-xl border border-input bg-background px-3 py-2" value={shareYear} onChange={(e) => setShareYear(e.target.value)}>
@@ -986,7 +1004,7 @@ function ShareResource({
               </select>
             </label>
           )}
-          {shareCollege === "Freshman" && (
+          {shareCollege && (
             <label className="text-sm">
               Semester
               <select className="mt-1 block w-full rounded-xl border border-input bg-background px-3 py-2" value={shareSemester} onChange={(e) => setShareSemester(e.target.value)}>
@@ -1029,6 +1047,7 @@ function ShareResource({
               <input
                 ref={fileInputRef}
                 type="file"
+                accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip,.rar,.mp4,.mp3"
                 className="hidden"
                 onChange={(e) => setShareFile(e.target.files ? e.target.files[0] : null)}
               />

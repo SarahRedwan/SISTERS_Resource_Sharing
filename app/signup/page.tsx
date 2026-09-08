@@ -36,13 +36,33 @@ export default function SignUpPage() {
       if (field === "college") {
         const nextCollege = value
         const isFreshman = nextCollege === "Freshman"
+        const defaultYear = isFreshman ? "Year 1" : "Year 2"
+        const defaultSemester = isFreshman ? "Semester 1" : "Semester 1"
 
         return {
           ...current,
           college: nextCollege,
           department: isFreshman ? "General Freshman" : "",
-          year: isFreshman ? "Year 1" : "",
-          semester: isFreshman ? "Semester 1" : "",
+          year: defaultYear,
+          semester: defaultSemester,
+        }
+      }
+
+      if (field === "department") {
+        const nextDepartment = value
+        if (current.college === "Freshman") {
+          return { ...current, department: nextDepartment, year: "Year 1", semester: "Semester 1" }
+        }
+
+        const isPreProgram = (current.college === "Engineering" && nextDepartment === "Pre Engineering") || (current.college === "Applied Science" && nextDepartment === "Pre Applied")
+        const nextYear = isPreProgram ? "Year 1" : getAvailableYearsForCollege(current.college)[0] || ""
+        const validSemesters = getAvailableSemestersForCollegeAndYear(current.college, nextYear)
+
+        return {
+          ...current,
+          department: nextDepartment,
+          year: nextYear,
+          semester: validSemesters.includes(current.semester) ? current.semester : validSemesters[0] || "",
         }
       }
 
@@ -116,7 +136,7 @@ export default function SignUpPage() {
               value={form.email}
               onChange={(e) => handleChange("email", e.target.value)}
               className="h-11 w-full rounded-xl border border-input bg-background px-3 outline-none focus:ring-2 focus:ring-primary/30"
-              placeholder="yourname@aastu.edu.et"
+              placeholder="yourname@email.com"
               required
             />
           </label>
@@ -174,7 +194,7 @@ export default function SignUpPage() {
             </select>
           </label>
 
-          {form.college === "Freshman" && (
+          {form.college && (
             <label className="block text-sm">
               <span className="mb-1.5 block font-medium">Year</span>
               <select
@@ -183,14 +203,14 @@ export default function SignUpPage() {
                 className="h-11 w-full rounded-xl border border-input bg-background px-3 outline-none focus:ring-2 focus:ring-primary/30"
                 required
               >
-                {getAvailableYearsForCollege(form.college).map((year) => (
+                {getAvailableYearsForCollege(form.college, form.department).map((year) => (
                   <option key={year} value={year}>{year}</option>
                 ))}
               </select>
             </label>
           )}
 
-          {form.college === "Freshman" && (
+          {form.college && (
             <label className="block text-sm">
               <span className="mb-1.5 block font-medium">Semester</span>
               <select

@@ -40,19 +40,41 @@ export const departmentMap: Record<string, string[]> = {
   ],
 }
 
-export const years = ["Year 1"]
-export const semesters = ["Semester 1"]
+export const years = ["Year 1", "Year 2", "Year 3", "Year 4", "Year 5"]
+export const semesters = ["Semester 1", "Semester 2"]
 
-export function getAvailableYearsForCollege(college: string): string[] {
-  if (!college) return years
+export function getAvailableYearsForCollege(college: string, department?: string): string[] {
+  if (!college) return ["Year 1"]
   if (college === "Freshman") return ["Year 1"]
-  return []
+  if (college === "Engineering") {
+    if (department === "Pre Engineering") return ["Year 1"]
+    return ["Year 2", "Year 3", "Year 4", "Year 5"]
+  }
+  if (college === "Applied Science") {
+    if (department === "Pre Applied") return ["Year 1"]
+    return ["Year 2", "Year 3", "Year 4"]
+  }
+  return ["Year 1"]
+}
+
+export function getDefaultYearAndSemester(college: string, department: string): { year: string; semester: string } {
+  const nextCollege = normalizeCollegeName(college)
+  const nextDepartment = nextCollege === "Freshman" ? "General Freshman" : department.trim()
+
+  if (nextCollege === "Freshman") return { year: "Year 1", semester: "Semester 1" }
+  if ((nextCollege === "Engineering" && nextDepartment === "Pre Engineering") || (nextCollege === "Applied Science" && nextDepartment === "Pre Applied")) {
+    return { year: "Year 1", semester: "Semester 2" }
+  }
+
+  return { year: "Year 2", semester: "Semester 1" }
 }
 
 export function getAvailableSemestersForCollegeAndYear(college: string, year: string): string[] {
   if (!college) return []
   if (college === "Freshman" && year === "Year 1") return ["Semester 1"]
-  return []
+  if ((college === "Engineering" || college === "Applied Science") && year === "Year 1") return ["Semester 1", "Semester 2"]
+  if (["Engineering", "Applied Science"].includes(college) && year) return ["Semester 1", "Semester 2"]
+  return ["Semester 1", "Semester 2"]
 }
 
 export function normalizeAcademicSelection(
@@ -63,10 +85,11 @@ export function normalizeAcademicSelection(
 ): { college: string; department: string; year: string; semester: string } {
   const nextCollege = normalizeCollegeName(college)
   const nextDepartment = nextCollege === "Freshman" ? "General Freshman" : department.trim()
+  const defaultValues = getDefaultYearAndSemester(nextCollege, nextDepartment)
   const yearOptions = getAvailableYearsForCollege(nextCollege)
-  const nextYear = yearOptions.includes(year.trim()) ? year.trim() : yearOptions[0] || ""
+  const nextYear = yearOptions.includes(year.trim()) ? year.trim() : (nextDepartment === "Pre Engineering" || nextDepartment === "Pre Applied" ? "Year 1" : defaultValues.year)
   const semesterOptions = getAvailableSemestersForCollegeAndYear(nextCollege, nextYear)
-  const nextSemester = semesterOptions.includes(semester.trim()) ? semester.trim() : semesterOptions[0] || ""
+  const nextSemester = semesterOptions.includes(semester.trim()) ? semester.trim() : (nextYear === "Year 1" ? "Semester 2" : defaultValues.semester)
 
   return {
     college: nextCollege,

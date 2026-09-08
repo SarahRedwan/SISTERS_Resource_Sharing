@@ -60,7 +60,7 @@ export default function SignInPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="h-11 w-full rounded-xl border border-input bg-background px-3 outline-none focus:ring-2 focus:ring-primary/30"
-              placeholder="yourname@aastu.edu.et"
+              placeholder="yourname@email.com"
               required
             />
           </label>
