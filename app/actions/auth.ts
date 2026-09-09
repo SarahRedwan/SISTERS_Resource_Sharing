@@ -28,26 +28,36 @@ export async function registerUser(formData: unknown) {
 
   const { name, email, password, college, department, year, semester } = result.data
 
-  const existingUser = await prisma.user.findUnique({ where: { email } })
-  if (existingUser) {
-    return { error: "An account with this email already exists." }
+  try {
+    const existingUser = await prisma.user.findUnique({ where: { email } })
+    if (existingUser) {
+      return { error: "An account with this email already exists." }
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10)
+
+    await prisma.user.create({
+      data: {
+        name,
+        email,
+        password: hashedPassword,
+        college,
+        department,
+        year,
+        semester,
+      },
+    })
+
+    return { success: true }
+  } catch (err) {
+    console.error("[registerUser] error:", err)
+    return {
+      error:
+        err instanceof Error
+          ? `Database error: ${err.message}`
+          : "Database error: unknown",
+    }
   }
-
-  const hashedPassword = await bcrypt.hash(password, 10)
-
-  await prisma.user.create({
-    data: {
-      name,
-      email,
-      password: hashedPassword,
-      college,
-      department,
-      year,
-      semester,
-    },
-  })
-
-  return { success: true }
 }
 
 export async function loginUser(formData: unknown) {
