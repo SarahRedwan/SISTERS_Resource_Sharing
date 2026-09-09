@@ -4,7 +4,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { BookOpen, Eye, EyeOff } from "lucide-react"
-import { signInStudent } from "@/lib/student-profile"
+import { loginUser } from "@/app/actions/auth"
 
 export default function SignInPage() {
   const router = useRouter()
@@ -14,17 +14,23 @@ export default function SignInPage() {
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
     setLoading(true)
 
     try {
-      const user = signInStudent(email, password)
-      if (!user) {
-        setError("Incorrect email or password.")
+      const res = await loginUser({ email, password })
+
+      if (res?.error) {
+        setError(res.error)
         setLoading(false)
         return
+      }
+
+      if (res?.user) {
+        localStorage.setItem("aastu_student_profile", JSON.stringify(res.user))
+        localStorage.setItem("aastu_current_user", res.user.email)
       }
 
       router.push("/")
