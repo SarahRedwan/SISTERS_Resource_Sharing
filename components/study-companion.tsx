@@ -54,7 +54,7 @@ type Resource = {
   createdAt: string
 }
 
-const types = ["All types", "Notes", "PPTs", "Quiz", "Mid Exams", "Final Exams", "Other"]
+const types = ["All types", "Notes", "Textbooks", "PPTs", "Quiz", "Mid Exams", "Final Exams", "Other"]
 
 function requiresInstructor(type: string) {
   return ["ppt", "ppts", "quiz"].includes(type.trim().toLowerCase())
