@@ -19,6 +19,17 @@ const SignInSchema = z.object({
   password: z.string().min(1, "Password required"),
 })
 
+const ProfileUpdateSchema = z.object({
+  currentEmail: z.string().email("Invalid current email"),
+  name: z.string().min(2, "Name required"),
+  email: z.string().email("Invalid email"),
+  password: z.string().optional(),
+  college: z.string().min(1, "College required"),
+  department: z.string().min(1, "Department required"),
+  year: z.string().min(1, "Year required"),
+  semester: z.string().min(1, "Semester required"),
+})
+
 export async function registerUser(formData: unknown) {
   const result = SignUpSchema.safeParse(formData)
 
@@ -90,5 +101,53 @@ export async function loginUser(formData: unknown) {
       year: user.year,
       semester: user.semester,
     },
+  }
+}
+
+export async function updateUserProfile(formData: unknown) {
+  const result = ProfileUpdateSchema.safeParse(formData)
+
+  if (!result.success) {
+    return { error: result.error.issues[0]?.message ?? "Invalid profile data" }
+  }
+
+  const { currentEmail, name, email, password, college, department, year, semester } = result.data
+
+  try {
+    const existingUser = await prisma.user.findUnique({ where: { email: currentEmail } })
+    if (!existingUser) return { error: "Your account could not be found." }
+
+    if (email.toLowerCase() !== currentEmail.toLowerCase()) {
+      const emailInUse = await prisma.user.findUnique({ where: { email } })
+      if (emailInUse) return { error: "An account with this email already exists." }
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { email: currentEmail },
+      data: {
+        name,
+        email,
+        ...(password?.trim() ? { password: await bcrypt.hash(password, 10) } : {}),
+        college,
+        department,
+        year,
+        semester,
+      },
+    })
+
+    return {
+      success: true,
+      user: {
+        name: updatedUser.name,
+        email: updatedUser.email,
+        college: updatedUser.college,
+        department: updatedUser.department,
+        year: updatedUser.year,
+        semester: updatedUser.semester,
+      },
+    }
+  } catch (err) {
+    console.error("[updateUserProfile] error:", err)
+    return { error: "Could not update your profile." }
   }
 }

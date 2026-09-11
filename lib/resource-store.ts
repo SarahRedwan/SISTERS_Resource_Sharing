@@ -9,6 +9,7 @@ export type StoredResource = {
   semester: string
   course: string
   type: string
+  instructor?: string
   description?: string
   fileName?: string
   fileUrl?: string

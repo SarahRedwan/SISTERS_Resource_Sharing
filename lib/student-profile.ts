@@ -1,7 +1,7 @@
 export type StudentProfile = {
   name: string
   email: string
-  password: string
+  password?: string
   college: string
   department: string
   year: string
@@ -171,6 +171,7 @@ export function getCurrentStudentProfile(): StudentProfile | null {
 export function saveStudentProfile(profile: StudentProfile) {
   if (typeof window === "undefined") return profile
 
+  const currentEmail = getCurrentUserEmail().trim().toLowerCase()
   const normalizedProfile = {
     ...profile,
     college: normalizeCollegeName(profile.college),
@@ -180,8 +181,20 @@ export function saveStudentProfile(profile: StudentProfile) {
   }
 
   const users = getStoredUsers()
-  const nextUsers = users.filter((user) => user.email.toLowerCase() !== normalizedProfile.email.toLowerCase())
-  nextUsers.push(normalizedProfile)
+  const existingUser = users.find((user) =>
+    [currentEmail, normalizedProfile.email].some(
+      (email) => email && user.email.toLowerCase() === email.toLowerCase(),
+    ),
+  )
+  const nextUsers = users.filter(
+    (user) =>
+      user.email.toLowerCase() !== normalizedProfile.email.toLowerCase() &&
+      (!currentEmail || user.email.toLowerCase() !== currentEmail),
+  )
+  nextUsers.push({
+    ...normalizedProfile,
+    password: normalizedProfile.password || existingUser?.password,
+  })
   writeStoredUsers(nextUsers)
   localStorage.setItem(PROFILE_KEY, JSON.stringify(normalizedProfile))
   setCurrentUser(normalizedProfile.email)

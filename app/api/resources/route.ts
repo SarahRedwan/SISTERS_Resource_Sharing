@@ -37,6 +37,10 @@ export async function GET(request: NextRequest) {
 
 const REQUIRED_FIELDS = ['college', 'department', 'year', 'semester', 'course', 'type'] as const
 
+function requiresInstructor(type: string) {
+  return ['ppt', 'ppts', 'quiz'].includes(type.trim().toLowerCase())
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
@@ -59,6 +63,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: `Missing required fields: ${missing.join(', ')}` }, { status: 400 })
     }
 
+    if (requiresInstructor(String(body.type)) && (!body.instructor || String(body.instructor).trim() === '')) {
+      return NextResponse.json({ error: 'Instructor name is required for PPT and Quiz resources' }, { status: 400 })
+    }
+
     const resource = {
       id: String(body.id || crypto.randomUUID()),
       college: String(body.college).trim(),
@@ -67,6 +75,7 @@ export async function POST(request: NextRequest) {
       semester: String(body.semester).trim(),
       course: String(body.course).trim(),
       type: String(body.type).trim(),
+      instructor: body.instructor ? String(body.instructor).trim() : undefined,
       description: String(body.description || '').trim(),
       fileName: body.fileName ? String(body.fileName).trim() : undefined,
       fileUrl: body.fileUrl ? String(body.fileUrl).trim() : undefined,

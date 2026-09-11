@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { BookOpen, Eye, EyeOff } from "lucide-react"
 import { loginUser } from "@/app/actions/auth"
+import { saveStudentProfile } from "@/lib/student-profile"
 
 export default function SignInPage() {
   const router = useRouter()
@@ -29,8 +30,7 @@ export default function SignInPage() {
       }
 
       if (res?.user) {
-        localStorage.setItem("aastu_student_profile", JSON.stringify(res.user))
-        localStorage.setItem("aastu_current_user", res.user.email)
+        saveStudentProfile(res.user)
       }
 
       router.push("/")

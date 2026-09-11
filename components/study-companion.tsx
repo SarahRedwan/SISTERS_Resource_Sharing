@@ -23,6 +23,7 @@ import {
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
+import { updateUserProfile } from "@/app/actions/auth"
 import {
   colleges,
   departmentMap,
@@ -44,6 +45,7 @@ type Resource = {
   semester: string
   course: string
   type: string
+  instructor?: string
   description?: string
   title?: string
   fileName?: string
@@ -52,7 +54,11 @@ type Resource = {
   createdAt: string
 }
 
-const types = ["All types", "Notes", "PPTs", "Mid Exams", "Final Exams", "Other"]
+const types = ["All types", "Notes", "PPTs", "Quiz", "Mid Exams", "Final Exams", "Other"]
+
+function requiresInstructor(type: string) {
+  return ["ppt", "ppts", "quiz"].includes(type.trim().toLowerCase())
+}
 const FOCUS_SECONDS = 25 * 60
 
 export function StudyCompanion() {
@@ -540,6 +546,10 @@ function ProfileEditor({
   const [form, setForm] = useState<StudentProfile>(profile)
   const [message, setMessage] = useState("")
 
+  useEffect(() => {
+    setForm(profile)
+  }, [profile])
+
   const handleChange = (field: keyof StudentProfile, value: string) => {
     setForm((current) => {
       if (field === "college") {
@@ -578,19 +588,32 @@ function ProfileEditor({
     })
   }
 
-  const handleSave = () => {
-    const saved = saveStudentProfile({
+  const handleSave = async () => {
+    setMessage("")
+    const saved = await updateUserProfile({
+      currentEmail: profile.email,
       ...form,
       name: form.name.trim(),
       email: form.email.trim(),
-      password: form.password,
+      password: (form.password || "").trim(),
       college: form.college.trim(),
       department: form.department.trim(),
       year: form.year.trim(),
       semester: form.semester.trim(),
     })
+
+    if (saved.error || !saved.user) {
+      setMessage(saved.error || "Could not update your profile.")
+      return
+    }
+
+    const nextProfile: StudentProfile = {
+      ...saved.user,
+      password: form.password?.trim() || profile.password || "",
+    }
+    saveStudentProfile(nextProfile)
     setMessage("Profile updated successfully.")
-    onSaved(saved)
+    onSaved(nextProfile)
   }
 
   return (
@@ -831,6 +854,7 @@ function Resources(props: {
               <span className="rounded-full bg-muted px-3 py-1 text-xs font-medium">{r.type}</span>
             </div>
             <h3 className="mt-5 text-lg font-semibold">{r.course}</h3>
+            {requiresInstructor(r.type) && r.instructor && <p className="mt-2 text-sm text-primary">Instructor: {r.instructor}</p>}
             {r.description && <p className="mt-2 text-sm text-muted-foreground">{r.description}</p>}
             <div className="mt-5 flex items-center justify-between border-t border-border pt-4 text-xs text-muted-foreground">
               <span>
@@ -887,6 +911,7 @@ function ShareResource({
   const [shareSemester, setShareSemester] = useState(semester)
   const [shareCourse, setShareCourse] = useState("")
   const [shareType, setShareType] = useState("")
+  const [shareInstructor, setShareInstructor] = useState("")
   const [shareDescription, setShareDescription] = useState("")
   const [shareFile, setShareFile] = useState<File | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
@@ -915,6 +940,7 @@ function ShareResource({
     if (!shareSemester) missing.push("semester")
     if (!shareCourse || !String(shareCourse).trim()) missing.push("course")
     if (!shareType) missing.push("type")
+    if (requiresInstructor(shareType) && !shareDescription.trim()) missing.push("instructor")
     if (!shareFile) missing.push("file")
     if (missing.length > 0) {
       setShareMsg(`Missing: ${missing.join(", ")}`)
@@ -938,7 +964,8 @@ function ShareResource({
           semester: shareSemester,
           course: shareCourse,
           type: shareType,
-          description: shareDescription,
+          instructor: requiresInstructor(shareType) ? shareDescription : shareInstructor,
+          description: requiresInstructor(shareType) ? "" : shareDescription,
           fileName: fileMeta?.fileName,
           fileUrl: fileMeta?.fileUrl,
           mimeType: fileMeta?.mimeType,
@@ -958,6 +985,7 @@ function ShareResource({
       setShareSemester("")
       setShareCourse("")
       setShareType("")
+      setShareInstructor("")
       setShareDescription("")
       setShareFile(null)
       onSaved()
@@ -1025,8 +1053,14 @@ function ShareResource({
               ))}
             </select>
           </label>
+          {requiresInstructor(shareType) && (
+            <label className="text-sm md:col-span-2">
+              Instructor name
+              <input className="mt-1 block w-full rounded-xl border border-input bg-background px-3 py-2" value={shareInstructor} onChange={(e) => setShareInstructor(e.target.value)} required />
+            </label>
+          )}
           <label className="text-sm md:col-span-2">
-            Description (optional)
+            {requiresInstructor(shareType) ? "Instructor name" : "Description (optional)"}
             <input className="mt-1 block w-full rounded-xl border border-input bg-background px-3 py-2" value={shareDescription} onChange={(e) => setShareDescription(e.target.value)} />
           </label>
           <label className="text-sm md:col-span-2">
