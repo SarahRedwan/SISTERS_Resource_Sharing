@@ -911,7 +911,6 @@ function ShareResource({
   const [shareSemester, setShareSemester] = useState(semester)
   const [shareCourse, setShareCourse] = useState("")
   const [shareType, setShareType] = useState("")
-  const [shareInstructor, setShareInstructor] = useState("")
   const [shareDescription, setShareDescription] = useState("")
   const [shareFile, setShareFile] = useState<File | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
@@ -964,7 +963,7 @@ function ShareResource({
           semester: shareSemester,
           course: shareCourse,
           type: shareType,
-          instructor: requiresInstructor(shareType) ? shareDescription : shareInstructor,
+          instructor: requiresInstructor(shareType) ? shareDescription : undefined,
           description: requiresInstructor(shareType) ? "" : shareDescription,
           fileName: fileMeta?.fileName,
           fileUrl: fileMeta?.fileUrl,
@@ -985,7 +984,6 @@ function ShareResource({
       setShareSemester("")
       setShareCourse("")
       setShareType("")
-      setShareInstructor("")
       setShareDescription("")
       setShareFile(null)
       onSaved()
@@ -1053,12 +1051,6 @@ function ShareResource({
               ))}
             </select>
           </label>
-          {requiresInstructor(shareType) && (
-            <label className="text-sm md:col-span-2">
-              Instructor name
-              <input className="mt-1 block w-full rounded-xl border border-input bg-background px-3 py-2" value={shareInstructor} onChange={(e) => setShareInstructor(e.target.value)} required />
-            </label>
-          )}
           <label className="text-sm md:col-span-2">
             {requiresInstructor(shareType) ? "Instructor name" : "Description (optional)"}
             <input className="mt-1 block w-full rounded-xl border border-input bg-background px-3 py-2" value={shareDescription} onChange={(e) => setShareDescription(e.target.value)} />
