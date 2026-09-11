@@ -406,8 +406,8 @@ export function StudyCompanion() {
           department={activeDepartment}
           year={activeYear}
           semester={activeSemester}
-          onSaved={() => {
-            loadResources()
+          onSaved={(resource) => {
+            setResources((current) => [resource, ...current.filter((item) => item.id !== resource.id)])
             setTab("resources")
           }}
         />
@@ -900,7 +900,7 @@ function ShareResource({
   department: string
   year: string
   semester: string
-  onSaved: () => void
+  onSaved: (resource: Resource) => void
 }) {
   const [shareLoading, setShareLoading] = useState(false)
   const [shareMsg, setShareMsg] = useState("")
@@ -948,11 +948,13 @@ function ShareResource({
 
     setShareLoading(true)
     try {
+      setShareMsg("Uploading file...")
       const fd = new FormData()
       fd.append("file", shareFile as Blob)
       const up = await fetch("/api/upload", { method: "POST", body: fd })
       if (!up.ok) throw new Error("Upload failed")
       const fileMeta = await up.json()
+      setShareMsg("Saving resource...")
       const res = await fetch("/api/resources", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -977,6 +979,7 @@ function ShareResource({
         return
       }
 
+      const savedResource = (await res.json()) as Resource
       setShareMsg("Thanks — resource shared!")
       setShareCollege("")
       setShareDepartment("")
@@ -986,7 +989,7 @@ function ShareResource({
       setShareType("")
       setShareDescription("")
       setShareFile(null)
-      onSaved()
+      onSaved(savedResource)
     } catch {
       setShareMsg("Could not add resource")
     } finally {
