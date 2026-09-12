@@ -82,6 +82,7 @@ async function handleTokenRequest(request: NextRequest) {
       pathname,
       addRandomSuffix: false,
       maximumSizeInBytes: MAX_FILE_SIZE,
+      validUntil: Date.now() + 60 * 60 * 1000,
     })
 
     return NextResponse.json({ clientToken })
