@@ -11,30 +11,33 @@ export const dynamic = 'force-dynamic'
 const uploadsDir = path.join(process.cwd(), 'public', 'uploads')
 const MAX_FILE_SIZE = 50 * 1024 * 1024
 const blobEnabled = Boolean(process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_STORE_ID)
+const blobReadWriteTokenConfigured = Boolean(process.env.BLOB_READ_WRITE_TOKEN)
 const blobAccess = process.env.BLOB_ACCESS === 'public' ? 'public' : 'private'
 
 export async function GET() {
-  let blobStatus: { configured: boolean; blobStoreId?: boolean; tokenTest?: string | { error: string } } = {
-    configured: blobEnabled,
-    blobStoreId: Boolean(process.env.BLOB_STORE_ID),
-  }
-  if (blobEnabled) {
+  let tokenTest: string | { error: string } | null = null
+  if (blobReadWriteTokenConfigured) {
     try {
       const token = await generateClientTokenFromReadWriteToken({
         pathname: `diag-${Date.now()}.txt`,
         addRandomSuffix: false,
         maximumSizeInBytes: MAX_FILE_SIZE,
       })
-      blobStatus.tokenTest = token.startsWith('vercel_blob_client_') ? 'ok' : 'unexpected-format'
+      tokenTest = token.startsWith('vercel_blob_client_') ? 'ok' : 'unexpected-format'
     } catch (err) {
-      blobStatus.tokenTest = { error: err instanceof Error ? err.message : String(err) }
+      tokenTest = { error: err instanceof Error ? err.message : String(err) }
     }
   }
   return NextResponse.json({
-    uploadMode: blobEnabled ? 'client' : 'server',
+    uploadMode: blobReadWriteTokenConfigured ? 'client' : 'server',
     access: blobAccess,
     maxFileSize: MAX_FILE_SIZE,
-    blob: blobStatus,
+    blob: {
+      configured: blobEnabled,
+      readWriteToken: blobReadWriteTokenConfigured,
+      blobStoreId: Boolean(process.env.BLOB_STORE_ID),
+      tokenTest,
+    },
   })
 }
 
@@ -62,8 +65,11 @@ export async function POST(request: NextRequest) {
 }
 
 async function handleTokenRequest(request: NextRequest) {
-  if (!blobEnabled) {
-    return NextResponse.json({ error: 'Client uploads are not enabled.' }, { status: 400 })
+  if (!blobReadWriteTokenConfigured) {
+    return NextResponse.json(
+      { error: 'Client uploads are not enabled. Add BLOB_READ_WRITE_TOKEN to use direct uploads.' },
+      { status: 400 },
+    )
   }
 
   try {
