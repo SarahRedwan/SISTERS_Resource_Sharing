@@ -14,10 +14,27 @@ const blobEnabled = Boolean(process.env.BLOB_READ_WRITE_TOKEN || process.env.BLO
 const blobAccess = process.env.BLOB_ACCESS === 'public' ? 'public' : 'private'
 
 export async function GET() {
+  let blobStatus: { configured: boolean; blobStoreId?: boolean; tokenTest?: string | { error: string } } = {
+    configured: blobEnabled,
+    blobStoreId: Boolean(process.env.BLOB_STORE_ID),
+  }
+  if (blobEnabled) {
+    try {
+      const token = await generateClientTokenFromReadWriteToken({
+        pathname: `diag-${Date.now()}.txt`,
+        addRandomSuffix: false,
+        maximumSizeInBytes: MAX_FILE_SIZE,
+      })
+      blobStatus.tokenTest = token.startsWith('vercel_blob_client_') ? 'ok' : 'unexpected-format'
+    } catch (err) {
+      blobStatus.tokenTest = { error: err instanceof Error ? err.message : String(err) }
+    }
+  }
   return NextResponse.json({
     uploadMode: blobEnabled ? 'client' : 'server',
     access: blobAccess,
     maxFileSize: MAX_FILE_SIZE,
+    blob: blobStatus,
   })
 }
 

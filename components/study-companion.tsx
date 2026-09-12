@@ -1066,13 +1066,25 @@ function ShareResource({
       const fd = new FormData()
       fd.append("file", file)
       const up = await fetch("/api/upload", { method: "POST", body: fd })
+      const text = await up.text().catch(() => "")
       if (!up.ok) {
-        const data = await up.json().catch(() => null)
-        setShareMsg(data?.error || "File upload failed")
+        let data: { error?: string } | null = null
+        try {
+          data = JSON.parse(text)
+        } catch {}
+        setShareMsg(
+          data?.error ||
+            (text ? `Server upload failed (${up.status}): ${text.slice(0, 300)}` : `Server upload failed (${up.status})`),
+        )
         return null
       }
-      const meta = await up.json()
-      return { fileName: meta.fileName, fileUrl: meta.fileUrl, mimeType: meta.mimeType }
+      try {
+        const meta = JSON.parse(text)
+        return { fileName: meta.fileName, fileUrl: meta.fileUrl, mimeType: meta.mimeType }
+      } catch {
+        setShareMsg(`Server upload returned invalid data: ${text.slice(0, 300)}`)
+        return null
+      }
     } catch (err) {
       setShareMsg(err instanceof Error ? `Upload failed: ${err.message}` : "File upload failed")
       return null
@@ -1115,10 +1127,18 @@ function ShareResource({
             body: JSON.stringify({ pathname: storageName }),
           })
           if (!tokenRes.ok) {
-            const errData = await tokenRes.json().catch(() => null)
-            throw new Error(errData?.error || `Upload token request failed (${tokenRes.status})`)
+            const tokenText = await tokenRes.text().catch(() => "")
+            let errData: { error?: string } | null = null
+            try {
+              errData = JSON.parse(tokenText)
+            } catch {}
+            throw new Error(
+              errData?.error ||
+                (tokenText ? `Upload token request failed (${tokenRes.status}): ${tokenText.slice(0, 200)}` : `Upload token request failed (${tokenRes.status})`),
+            )
           }
-          const { clientToken } = (await tokenRes.json()) as { clientToken: string }
+          const tokenText = await tokenRes.text()
+          const { clientToken } = JSON.parse(tokenText) as { clientToken: string }
 
           const blob = await put(storageName, file, {
             access: uploadConfig.access,
