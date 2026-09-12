@@ -1060,6 +1060,25 @@ function ShareResource({
 
   const onDragOver = (e: React.DragEvent) => e.preventDefault()
 
+  const doServerUpload = async (file: File) => {
+    try {
+      setShareMsg("Uploading file...")
+      const fd = new FormData()
+      fd.append("file", file)
+      const up = await fetch("/api/upload", { method: "POST", body: fd })
+      if (!up.ok) {
+        const data = await up.json().catch(() => null)
+        setShareMsg(data?.error || "File upload failed")
+        return null
+      }
+      const meta = await up.json()
+      return { fileName: meta.fileName, fileUrl: meta.fileUrl, mimeType: meta.mimeType }
+    } catch (err) {
+      setShareMsg(err instanceof Error ? `Upload failed: ${err.message}` : "File upload failed")
+      return null
+    }
+  }
+
   const submitShare = async () => {
     setShareMsg("")
     const missing = [] as string[]
@@ -1085,32 +1104,32 @@ function ShareResource({
 
       const uploadConfig = await getUploadConfig()
       if (uploadConfig.mode === "client") {
-        setShareMsg("Uploading 0%...")
-        const ext = file.name.includes(".") ? file.name.split(".").pop() : ""
-        const storageName = `${crypto.randomUUID()}${ext ? "." + ext : ""}`
-        const blob = await upload(storageName, file, {
-          access: uploadConfig.access,
-          handleUploadUrl: "/api/upload",
-          onUploadProgress: ({ percentage }) => {
-            setShareMsg(`Uploading ${Math.round(percentage)}%...`)
-          },
-        })
-        fileMeta = {
-          fileName: file.name,
-          fileUrl: blob.url,
-          mimeType: file.type || "application/octet-stream",
+        try {
+          setShareMsg("Uploading 0%...")
+          const ext = file.name.includes(".") ? file.name.split(".").pop() : ""
+          const storageName = `${crypto.randomUUID()}${ext ? "." + ext : ""}`
+          const blob = await upload(storageName, file, {
+            access: uploadConfig.access,
+            handleUploadUrl: "/api/upload",
+            onUploadProgress: ({ percentage }) => {
+              setShareMsg(`Uploading ${Math.round(percentage)}%...`)
+            },
+          })
+          fileMeta = {
+            fileName: file.name,
+            fileUrl: blob.url,
+            mimeType: file.type || "application/octet-stream",
+          }
+        } catch (err) {
+          console.error("Direct upload failed, using server upload:", err)
+          const meta = await doServerUpload(file)
+          if (meta === null) return
+          fileMeta = meta
         }
       } else {
-        const fd = new FormData()
-        fd.append("file", file as Blob)
-        const up = await fetch("/api/upload", { method: "POST", body: fd })
-        if (!up.ok) {
-          const data = await up.json().catch(() => null)
-          setShareMsg(data?.error || "File upload failed")
-          return
-        }
-        const meta = await up.json()
-        fileMeta = { fileName: meta.fileName, fileUrl: meta.fileUrl, mimeType: meta.mimeType }
+        const meta = await doServerUpload(file)
+        if (meta === null) return
+        fileMeta = meta
       }
 
       setShareMsg("Saving resource...")
@@ -1149,8 +1168,8 @@ function ShareResource({
       setShareDescription("")
       setShareFile(null)
       onSaved(savedResource)
-    } catch {
-      setShareMsg("Could not add resource")
+    } catch (err) {
+      setShareMsg(err instanceof Error && err.message ? err.message : "Could not add resource")
     } finally {
       setShareLoading(false)
     }
