@@ -22,7 +22,7 @@ import {
   Users,
 } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { upload } from "@vercel/blob/client"
+import { put } from "@vercel/blob/client"
 import { Button } from "@/components/ui/button"
 import { updateUserProfile } from "@/app/actions/auth"
 import {
@@ -1108,9 +1108,21 @@ function ShareResource({
           setShareMsg("Uploading 0%...")
           const ext = file.name.includes(".") ? file.name.split(".").pop() : ""
           const storageName = `${crypto.randomUUID()}${ext ? "." + ext : ""}`
-          const blob = await upload(storageName, file, {
+
+          const tokenRes = await fetch("/api/upload", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ pathname: storageName }),
+          })
+          if (!tokenRes.ok) {
+            const errData = await tokenRes.json().catch(() => null)
+            throw new Error(errData?.error || `Upload token request failed (${tokenRes.status})`)
+          }
+          const { clientToken } = (await tokenRes.json()) as { clientToken: string }
+
+          const blob = await put(storageName, file, {
             access: uploadConfig.access,
-            handleUploadUrl: "/api/upload",
+            token: clientToken,
             onUploadProgress: ({ percentage }) => {
               setShareMsg(`Uploading ${Math.round(percentage)}%...`)
             },
@@ -1122,6 +1134,7 @@ function ShareResource({
           }
         } catch (err) {
           console.error("Direct upload failed, using server upload:", err)
+          setShareMsg(`Upload problem (${err instanceof Error ? err.message : "unknown"}) — retrying via server...`)
           const meta = await doServerUpload(file)
           if (meta === null) return
           fileMeta = meta

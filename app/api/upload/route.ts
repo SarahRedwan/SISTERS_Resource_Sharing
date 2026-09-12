@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { handleUpload, type HandleUploadBody } from '@vercel/blob/client'
+import { generateClientTokenFromReadWriteToken } from '@vercel/blob/client'
 import { put } from '@vercel/blob'
 import fs from 'fs'
 import path from 'path'
@@ -38,34 +38,34 @@ export async function POST(request: NextRequest) {
   const contentType = request.headers.get('content-type') || ''
 
   if (contentType.includes('application/json')) {
-    return handleClientUpload(request)
+    return handleTokenRequest(request)
   }
 
   return handleServerUpload(request)
 }
 
-async function handleClientUpload(request: NextRequest) {
+async function handleTokenRequest(request: NextRequest) {
   if (!blobEnabled) {
     return NextResponse.json({ error: 'Client uploads are not enabled.' }, { status: 400 })
   }
 
   try {
-    const body = (await request.json()) as HandleUploadBody
-    const response = await handleUpload({
-      body,
-      request,
-      onBeforeGenerateToken: async () => {
-        return {
-          maximumSizeInBytes: MAX_FILE_SIZE,
-          addRandomSuffix: false,
-        }
-      },
+    const { pathname } = await request.json()
+    if (!pathname || typeof pathname !== 'string') {
+      return NextResponse.json({ error: 'pathname is required.' }, { status: 400 })
+    }
+
+    const clientToken = await generateClientTokenFromReadWriteToken({
+      pathname,
+      addRandomSuffix: false,
+      maximumSizeInBytes: MAX_FILE_SIZE,
     })
-    return NextResponse.json(response)
+
+    return NextResponse.json({ clientToken })
   } catch (err) {
-    console.error('Upload authorization failed:', err)
-    const message = err instanceof Error ? err.message : 'Unexpected error during upload.'
-    return NextResponse.json({ error: `Upload failed. ${message}` }, { status: 400 })
+    console.error('Token generation failed:', err)
+    const message = err instanceof Error ? err.message : 'Unexpected error.'
+    return NextResponse.json({ error: `Failed to authorize upload: ${message}` }, { status: 400 })
   }
 }
 
