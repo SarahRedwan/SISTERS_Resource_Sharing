@@ -22,6 +22,7 @@ import {
   Users,
 } from "lucide-react"
 import { useRouter } from "next/navigation"
+import { upload } from "@vercel/blob/client"
 import { Button } from "@/components/ui/button"
 import { updateUserProfile } from "@/app/actions/auth"
 import {
@@ -83,6 +84,21 @@ function inlinePreviewUrl(fileUrl: string): string {
     return url.toString()
   }
   return fileUrl
+}
+
+type UploadConfig = { mode: "client" | "server"; access: "public" | "private"; maxFileSize: number }
+let uploadConfigPromise: Promise<UploadConfig> | null = null
+
+function getUploadConfig(): Promise<UploadConfig> {
+  uploadConfigPromise ??= fetch("/api/upload")
+    .then((r) => r.json())
+    .then((d): UploadConfig => ({
+      mode: d.uploadMode === "client" ? "client" : "server",
+      access: d.access === "public" ? "public" : "private",
+      maxFileSize: Number(d.maxFileSize) || 50 * 1024 * 1024,
+    }))
+    .catch((): UploadConfig => ({ mode: "server", access: "private", maxFileSize: 50 * 1024 * 1024 }))
+  return uploadConfigPromise
 }
 const FOCUS_SECONDS = 25 * 60
 
@@ -1059,19 +1075,44 @@ function ShareResource({
       setShareMsg(`Missing: ${missing.join(", ")}`)
       return
     }
+    if (!shareFile) return
+    const file = shareFile
 
     setShareLoading(true)
     try {
       setShareMsg("Uploading file...")
-      const fd = new FormData()
-      fd.append("file", shareFile as Blob)
-      const up = await fetch("/api/upload", { method: "POST", body: fd })
-      if (!up.ok) {
-        const data = await up.json().catch(() => null)
-        setShareMsg(data?.error || "File upload failed")
-        return
+      let fileMeta: { fileName: string; fileUrl: string; mimeType: string } | null = null
+
+      const uploadConfig = await getUploadConfig()
+      if (uploadConfig.mode === "client") {
+        setShareMsg("Uploading 0%...")
+        const ext = file.name.includes(".") ? file.name.split(".").pop() : ""
+        const storageName = `${crypto.randomUUID()}${ext ? "." + ext : ""}`
+        const blob = await upload(storageName, file, {
+          access: uploadConfig.access,
+          handleUploadUrl: "/api/upload",
+          onUploadProgress: ({ percentage }) => {
+            setShareMsg(`Uploading ${Math.round(percentage)}%...`)
+          },
+        })
+        fileMeta = {
+          fileName: file.name,
+          fileUrl: blob.url,
+          mimeType: file.type || "application/octet-stream",
+        }
+      } else {
+        const fd = new FormData()
+        fd.append("file", file as Blob)
+        const up = await fetch("/api/upload", { method: "POST", body: fd })
+        if (!up.ok) {
+          const data = await up.json().catch(() => null)
+          setShareMsg(data?.error || "File upload failed")
+          return
+        }
+        const meta = await up.json()
+        fileMeta = { fileName: meta.fileName, fileUrl: meta.fileUrl, mimeType: meta.mimeType }
       }
-      const fileMeta = await up.json()
+
       setShareMsg("Saving resource...")
       const res = await fetch("/api/resources", {
         method: "POST",

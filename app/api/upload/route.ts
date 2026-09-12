@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { handleUpload, type HandleUploadBody } from '@vercel/blob/client'
 import { put } from '@vercel/blob'
 import fs from 'fs'
 import path from 'path'
@@ -11,6 +12,14 @@ const uploadsDir = path.join(process.cwd(), 'public', 'uploads')
 const MAX_FILE_SIZE = 50 * 1024 * 1024
 const blobEnabled = Boolean(process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_STORE_ID)
 const blobAccess = process.env.BLOB_ACCESS === 'public' ? 'public' : 'private'
+
+export async function GET() {
+  return NextResponse.json({
+    uploadMode: blobEnabled ? 'client' : 'server',
+    access: blobAccess,
+    maxFileSize: MAX_FILE_SIZE,
+  })
+}
 
 async function saveLocally(file: File, filename: string): Promise<string> {
   await fs.promises.mkdir(uploadsDir, { recursive: true })
@@ -26,6 +35,41 @@ async function saveLocally(file: File, filename: string): Promise<string> {
 }
 
 export async function POST(request: NextRequest) {
+  const contentType = request.headers.get('content-type') || ''
+
+  if (contentType.includes('application/json')) {
+    return handleClientUpload(request)
+  }
+
+  return handleServerUpload(request)
+}
+
+async function handleClientUpload(request: NextRequest) {
+  if (!blobEnabled) {
+    return NextResponse.json({ error: 'Client uploads are not enabled.' }, { status: 400 })
+  }
+
+  try {
+    const body = (await request.json()) as HandleUploadBody
+    const response = await handleUpload({
+      body,
+      request,
+      onBeforeGenerateToken: async () => {
+        return {
+          maximumSizeInBytes: MAX_FILE_SIZE,
+          addRandomSuffix: false,
+        }
+      },
+    })
+    return NextResponse.json(response)
+  } catch (err) {
+    console.error('Upload authorization failed:', err)
+    const message = err instanceof Error ? err.message : 'Unexpected error during upload.'
+    return NextResponse.json({ error: `Upload failed. ${message}` }, { status: 400 })
+  }
+}
+
+async function handleServerUpload(request: NextRequest) {
   try {
     const form = await request.formData()
     const file = form.get('file') as File | null
