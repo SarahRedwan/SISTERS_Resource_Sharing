@@ -1,5 +1,38 @@
 import { prisma } from '@/lib/prisma'
 
+const CREATE_RESOURCE_TABLE = `
+  CREATE TABLE IF NOT EXISTS "Resource" (
+    "id" TEXT NOT NULL,
+    "college" TEXT NOT NULL,
+    "department" TEXT NOT NULL,
+    "year" TEXT NOT NULL,
+    "semester" TEXT NOT NULL,
+    "course" TEXT NOT NULL,
+    "type" TEXT NOT NULL,
+    "instructor" TEXT,
+    "description" TEXT,
+    "fileName" TEXT,
+    "fileUrl" TEXT,
+    "mimeType" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "Resource_pkey" PRIMARY KEY ("id")
+  )
+`
+
+const CREATE_RESOURCE_INDEX = `
+  CREATE INDEX IF NOT EXISTS "Resource_college_department_year_semester_idx"
+  ON "Resource"("college", "department", "year", "semester")
+`
+
+let tableReady = false
+
+async function ensureTable(): Promise<void> {
+  if (tableReady) return
+  await prisma.$executeRawUnsafe(CREATE_RESOURCE_TABLE)
+  await prisma.$executeRawUnsafe(CREATE_RESOURCE_INDEX).catch(() => {})
+  tableReady = true
+}
+
 export type StoredResource = {
   id: string
   college: string
@@ -51,6 +84,7 @@ function serialize(row: ResourceRow): StoredResource {
 }
 
 export async function readResources(): Promise<StoredResource[]> {
+  await ensureTable()
   const rows = await prisma.resource.findMany({ orderBy: { createdAt: 'desc' } })
   return rows.map(serialize)
 }
@@ -60,6 +94,7 @@ export async function writeResources(_resources: StoredResource[]): Promise<void
 }
 
 export async function addResource(resource: StoredResource): Promise<StoredResource> {
+  await ensureTable()
   const row = await prisma.resource.upsert({
     where: { id: resource.id },
     create: {
@@ -84,6 +119,7 @@ export async function addResource(resource: StoredResource): Promise<StoredResou
 
 export async function removeResource(id: string): Promise<StoredResource | null> {
   try {
+    await ensureTable()
     const row = await prisma.resource.delete({ where: { id } })
     return serialize(row)
   } catch {
