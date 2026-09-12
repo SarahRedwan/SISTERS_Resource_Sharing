@@ -20,3 +20,21 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+model Resource {
+  id          String   @id
+  college     String
+  department  String
+  year        String
+  semester    String
+  course      String
+  type        String
+  instructor  String?
+  description String?
+  fileName    String?
+  fileUrl     String?
+  mimeType    String?
+  createdAt   DateTime @default(now())
+
+  @@index([college, department, year, semester])
+}

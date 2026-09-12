@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { del } from '@vercel/blob'
 import { addResource, readResources, removeResource } from '@/lib/resource-store'
 
 export const dynamic = 'force-dynamic'
@@ -112,6 +113,10 @@ export async function DELETE(request: NextRequest) {
   const removed = await removeResource(id)
   if (!removed) {
     return NextResponse.json({ error: 'Resource not found' }, { status: 404 })
+  }
+
+  if (removed.fileUrl && removed.fileUrl.includes('.blob.vercel-storage.com')) {
+    await del(removed.fileUrl).catch((err) => console.error('Blob delete failed:', err))
   }
 
   return new NextResponse(null, { status: 204 })
