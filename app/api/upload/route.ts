@@ -10,6 +10,7 @@ export const dynamic = 'force-dynamic'
 const uploadsDir = path.join(process.cwd(), 'public', 'uploads')
 const MAX_FILE_SIZE = 50 * 1024 * 1024
 const blobEnabled = Boolean(process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_STORE_ID)
+const blobAccess = process.env.BLOB_ACCESS === 'public' ? 'public' : 'private'
 
 async function saveLocally(file: File, filename: string): Promise<string> {
   await fs.promises.mkdir(uploadsDir, { recursive: true })
@@ -43,7 +44,7 @@ export async function POST(request: NextRequest) {
 
     let fileUrl: string
     if (blobEnabled) {
-      const blob = await put(filename, file, { access: 'public', addRandomSuffix: true })
+      const blob = await put(filename, file, { access: blobAccess, addRandomSuffix: false })
       fileUrl = blob.url
     } else {
       fileUrl = await saveLocally(file, filename)

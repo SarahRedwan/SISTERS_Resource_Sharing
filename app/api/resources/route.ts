@@ -3,6 +3,17 @@ import { addResource, readResources, removeResource } from '@/lib/resource-store
 
 export const dynamic = 'force-dynamic'
 
+const blobAccess = process.env.BLOB_ACCESS === 'public' ? 'public' : 'private'
+
+function toDownloadUrl(fileUrl: string | undefined): string | undefined {
+  if (!fileUrl) return undefined
+  if (fileUrl.includes('.blob.vercel-storage.com')) {
+    if (blobAccess === 'public') return fileUrl
+    return `/api/file?u=${encodeURIComponent(fileUrl)}`
+  }
+  return fileUrl
+}
+
 export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams
   const q = params.get('q')?.trim() || ''
@@ -32,7 +43,9 @@ export async function GET(request: NextRequest) {
     return true
   })
 
-  return NextResponse.json(filtered.slice(0, 100))
+  return NextResponse.json(
+    filtered.slice(0, 100).map((resource) => ({ ...resource, fileUrl: toDownloadUrl(resource.fileUrl) })),
+  )
 }
 
 const REQUIRED_FIELDS = ['college', 'department', 'year', 'semester', 'course', 'type'] as const
