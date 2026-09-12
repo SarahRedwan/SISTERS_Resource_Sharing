@@ -1061,6 +1061,12 @@ function ShareResource({
   const onDragOver = (e: React.DragEvent) => e.preventDefault()
 
   const doServerUpload = async (file: File) => {
+    if (file.size > 4 * 1024 * 1024) {
+      setShareMsg(
+        "This file is too large to upload through the server. Add the BLOB_READ_WRITE_TOKEN environment variable on Vercel to enable fast direct uploads.",
+      )
+      return null
+    }
     try {
       setShareMsg("Uploading file...")
       const fd = new FormData()
