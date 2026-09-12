@@ -6,11 +6,14 @@ export const dynamic = 'force-dynamic'
 
 const blobAccess = process.env.BLOB_ACCESS === 'public' ? 'public' : 'private'
 
-function toDownloadUrl(fileUrl: string | undefined): string | undefined {
+function toDownloadUrl(resource: { fileUrl?: string; fileName?: string }): string | undefined {
+  const fileUrl = resource.fileUrl
   if (!fileUrl) return undefined
   if (fileUrl.includes('.blob.vercel-storage.com')) {
     if (blobAccess === 'public') return fileUrl
-    return `/api/file?u=${encodeURIComponent(fileUrl)}`
+    const params = new URLSearchParams({ u: fileUrl })
+    if (resource.fileName) params.set('name', resource.fileName)
+    return `/api/file?${params.toString()}`
   }
   return fileUrl
 }
@@ -45,7 +48,7 @@ export async function GET(request: NextRequest) {
   })
 
   return NextResponse.json(
-    filtered.slice(0, 100).map((resource) => ({ ...resource, fileUrl: toDownloadUrl(resource.fileUrl) })),
+    filtered.slice(0, 100).map((resource) => ({ ...resource, fileUrl: toDownloadUrl(resource) })),
   )
 }
 

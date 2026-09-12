@@ -5,11 +5,19 @@ export const dynamic = 'force-dynamic'
 
 const blobAccess = process.env.BLOB_ACCESS === 'public' ? 'public' : 'private'
 
+function safeFilename(name: string): string {
+  const cleaned = name.replace(/["\\\r\n]/g, '_').trim()
+  return cleaned || 'download'
+}
+
 export async function GET(request: NextRequest) {
   const blobUrl = request.nextUrl.searchParams.get('u')
   if (!blobUrl) {
     return new NextResponse('Missing blob url', { status: 400 })
   }
+
+  const inline = request.nextUrl.searchParams.get('inline') === '1'
+  const name = safeFilename(request.nextUrl.searchParams.get('name') || '')
 
   try {
     const result = await get(blobUrl, { access: blobAccess })
@@ -18,7 +26,9 @@ export async function GET(request: NextRequest) {
     }
 
     const contentType = result.blob?.contentType || 'application/octet-stream'
-    const contentDisposition = result.blob?.contentDisposition || `attachment; filename="${new URL(blobUrl).pathname.split('/').pop()}"`
+    const contentDisposition = name
+      ? `${inline ? 'inline' : 'attachment'}; filename="${name}"`
+      : result.blob?.contentDisposition || 'attachment'
 
     return new NextResponse(result.stream as unknown as ReadableStream, {
       headers: {

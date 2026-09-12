@@ -39,18 +39,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'The selected file is empty.' }, { status: 400 })
     }
 
-    const ext = file.name && file.name.includes('.') ? file.name.split('.').pop() : ''
-    const filename = `${crypto.randomUUID()}${ext ? '.' + ext : ''}`
+    const originalName = (file.name || 'file').split(/[\\/]/).pop() || 'file'
+    const ext = originalName.includes('.') ? originalName.split('.').pop() : ''
+    const storageName = `${crypto.randomUUID()}${ext ? '.' + ext : ''}`
 
     let fileUrl: string
     if (blobEnabled) {
-      const blob = await put(filename, file, { access: blobAccess, addRandomSuffix: false })
+      const blob = await put(storageName, file, { access: blobAccess, addRandomSuffix: false })
       fileUrl = blob.url
     } else {
-      fileUrl = await saveLocally(file, filename)
+      fileUrl = await saveLocally(file, storageName)
     }
 
-    return NextResponse.json({ fileName: filename, fileUrl, mimeType: file.type })
+    return NextResponse.json({ fileName: originalName, fileUrl, mimeType: file.type })
   } catch (err) {
     console.error('Upload failed:', err)
     const message = err instanceof Error ? err.message : 'Unexpected error during upload.'
