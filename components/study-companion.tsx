@@ -275,7 +275,7 @@ export function StudyCompanion() {
               </span>
               <span>
                 <span className="block font-semibold tracking-tight">AASTU Muslim Sisters</span>
-                <span className="block text-xs text-muted-foreground">Learn with purpose</span>
+                <span className="hidden text-xs text-muted-foreground sm:block">Learn with purpose</span>
               </span>
             </div>
             <div className="flex items-center gap-2">
@@ -290,10 +290,6 @@ export function StudyCompanion() {
           <div className="relative overflow-hidden rounded-[2rem] border border-border bg-card p-8 shadow-xl md:p-12">
             <div className="grid items-center gap-10 md:grid-cols-[1.1fr_.9fr]">
               <div>
-                <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1.5 text-sm text-primary">
-                  <Sparkles className="size-4" />
-                  Your academic corner at AASTU
-                </div>
                 <h1 className="max-w-3xl text-balance text-5xl font-semibold leading-[1.05] tracking-[-0.04em] md:text-7xl">
                   Study steadily.
                   <br />
@@ -351,7 +347,7 @@ export function StudyCompanion() {
   }
 
   return (
-    <main className="min-h-screen bg-background text-foreground">
+    <main className="min-h-screen bg-background pb-20 text-foreground md:pb-0">
       <header className="sticky top-0 z-40 border-b border-border/70 bg-background/90 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-4">
           <button onClick={() => setTab("home")} className="flex items-center gap-3 text-left">
@@ -360,7 +356,7 @@ export function StudyCompanion() {
             </span>
             <span>
               <span className="block font-semibold tracking-tight">AASTU Muslim Sisters</span>
-              <span className="block text-xs text-muted-foreground">Learn with purpose</span>
+              <span className="hidden text-xs text-muted-foreground sm:block">Learn with purpose</span>
             </span>
           </button>
           <nav className="hidden items-center gap-1 rounded-full bg-muted p-1 md:flex">
@@ -474,6 +470,29 @@ export function StudyCompanion() {
           </span>
         </div>
       </footer>
+
+      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 p-1 backdrop-blur-xl md:hidden">
+        <div className="mx-auto flex max-w-md items-center justify-between gap-1 px-2">
+          {(
+            [
+              ["home", "Home"],
+              ["resources", "Resources"],
+              ["share", "Share"],
+              ["dashboard", "Dashboard"],
+            ] as const
+          ).map(([key, label]) => (
+            <button
+              key={key}
+              onClick={() => setTab(key)}
+              className={`flex-1 rounded-xl px-2 py-2 text-center text-xs font-medium transition ${
+                tab === key ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </nav>
     </main>
   )
 }
@@ -484,10 +503,6 @@ function Home({ onExplore, onTimer }: { onExplore: () => void; onTimer: () => vo
       <section className="relative overflow-hidden border-b border-border">
         <div className="mx-auto grid max-w-7xl gap-12 px-5 py-20 md:grid-cols-[1.1fr_.9fr] md:items-center md:py-28">
           <div>
-            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1.5 text-sm text-primary">
-              <Sparkles className="size-4" />
-              Your academic corner at AASTU
-            </div>
             <h1 className="max-w-3xl text-balance text-5xl font-semibold leading-[1.05] tracking-[-0.04em] md:text-7xl">
               Study steadily.
               <br />
