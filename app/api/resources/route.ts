@@ -102,7 +102,8 @@ export async function POST(request: NextRequest) {
 
     const saved = await addResource(resource)
     return NextResponse.json(saved, { status: 201 })
-  } catch {
+  } catch (err) {
+    console.error('Failed to save resource:', err)
     return NextResponse.json({ error: 'Could not save resource' }, { status: 500 })
   }
 }

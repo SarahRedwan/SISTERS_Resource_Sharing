@@ -1152,8 +1152,15 @@ function ShareResource({
       })
 
       if (!res.ok) {
-        const data = await res.json().catch(() => null)
-        setShareMsg(data?.error || "Could not add resource")
+        const text = await res.text()
+        let data: { error?: string } | null = null
+        try {
+          data = JSON.parse(text)
+        } catch {}
+        setShareMsg(
+          data?.error ||
+            (text ? `Save failed (${res.status}): ${text.slice(0, 200)}` : `Save failed (${res.status})`),
+        )
         return
       }
 

@@ -84,9 +84,14 @@ function serialize(row: ResourceRow): StoredResource {
 }
 
 export async function readResources(): Promise<StoredResource[]> {
-  await ensureTable()
-  const rows = await prisma.resource.findMany({ orderBy: { createdAt: 'desc' } })
-  return rows.map(serialize)
+  try {
+    await ensureTable()
+    const rows = await prisma.resource.findMany({ orderBy: { createdAt: 'desc' } })
+    return rows.map(serialize)
+  } catch (err) {
+    console.error('readResources failed:', err)
+    throw err
+  }
 }
 
 export async function writeResources(_resources: StoredResource[]): Promise<void> {
@@ -94,27 +99,32 @@ export async function writeResources(_resources: StoredResource[]): Promise<void
 }
 
 export async function addResource(resource: StoredResource): Promise<StoredResource> {
-  await ensureTable()
-  const row = await prisma.resource.upsert({
-    where: { id: resource.id },
-    create: {
-      id: resource.id,
-      college: resource.college,
-      department: resource.department,
-      year: resource.year,
-      semester: resource.semester,
-      course: resource.course,
-      type: resource.type,
-      instructor: resource.instructor || null,
-      description: resource.description || null,
-      fileName: resource.fileName || null,
-      fileUrl: resource.fileUrl || null,
-      mimeType: resource.mimeType || null,
-      createdAt: resource.createdAt ? new Date(resource.createdAt) : undefined,
-    },
-    update: {},
-  })
-  return serialize(row)
+  try {
+    await ensureTable()
+    const row = await prisma.resource.upsert({
+      where: { id: resource.id },
+      create: {
+        id: resource.id,
+        college: resource.college,
+        department: resource.department,
+        year: resource.year,
+        semester: resource.semester,
+        course: resource.course,
+        type: resource.type,
+        instructor: resource.instructor || null,
+        description: resource.description || null,
+        fileName: resource.fileName || null,
+        fileUrl: resource.fileUrl || null,
+        mimeType: resource.mimeType || null,
+        createdAt: resource.createdAt ? new Date(resource.createdAt) : undefined,
+      },
+      update: {},
+    })
+    return serialize(row)
+  } catch (err) {
+    console.error('addResource failed:', err)
+    throw err
+  }
 }
 
 export async function removeResource(id: string): Promise<StoredResource | null> {
