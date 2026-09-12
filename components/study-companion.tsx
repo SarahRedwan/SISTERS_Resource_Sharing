@@ -902,6 +902,7 @@ function ShareResource({
   semester: string
   onSaved: (resource: Resource) => void
 }) {
+  const maxFileSize = 50 * 1024 * 1024
   const [shareLoading, setShareLoading] = useState(false)
   const [shareMsg, setShareMsg] = useState("")
 
@@ -925,7 +926,14 @@ function ShareResource({
   const onDropFile = (e: React.DragEvent) => {
     e.preventDefault()
     const f = e.dataTransfer.files?.[0]
-    if (f) setShareFile(f)
+    if (!f) return
+    if (f.size > maxFileSize) {
+      setShareFile(null)
+      setShareMsg("File is too large. Maximum size is 50 MB.")
+      return
+    }
+    setShareFile(f)
+    setShareMsg("")
   }
 
   const onDragOver = (e: React.DragEvent) => e.preventDefault()
@@ -952,7 +960,11 @@ function ShareResource({
       const fd = new FormData()
       fd.append("file", shareFile as Blob)
       const up = await fetch("/api/upload", { method: "POST", body: fd })
-      if (!up.ok) throw new Error("Upload failed")
+      if (!up.ok) {
+        const data = await up.json().catch(() => null)
+        setShareMsg(data?.error || "File upload failed")
+        return
+      }
       const fileMeta = await up.json()
       setShareMsg("Saving resource...")
       const res = await fetch("/api/resources", {
@@ -1078,7 +1090,16 @@ function ShareResource({
                 type="file"
                 accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip,.rar,.mp4,.mp3"
                 className="hidden"
-                onChange={(e) => setShareFile(e.target.files ? e.target.files[0] : null)}
+                onChange={(e) => {
+                  const file = e.target.files?.[0] || null
+                  if (file && file.size > maxFileSize) {
+                    setShareFile(null)
+                    setShareMsg("File is too large. Maximum size is 50 MB.")
+                    return
+                  }
+                  setShareFile(file)
+                  setShareMsg("")
+                }}
               />
             </div>
           </label>
