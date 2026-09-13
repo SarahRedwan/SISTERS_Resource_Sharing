@@ -316,7 +316,7 @@ export function StudyCompanion() {
               </div>
               <div>
                 <span className="block text-sm font-semibold tracking-tight text-foreground">AASTU Muslim Sisters</span>
-                <span className="block text-[11px] font-light text-muted-foreground">Learn with purpose</span>
+                <span className="block text-[11px] font-medium text-muted-foreground">Learn with purpose</span>
               </div>
             </motion.button>
 
@@ -344,14 +344,14 @@ export function StudyCompanion() {
               <div className="flex items-center gap-2">
                 <Button
                   variant="ghost"
-                  className="rounded-full text-xs font-light hover:bg-muted/50"
+                  className="rounded-full text-xs font-medium hover:bg-muted/50"
                   onClick={() => router.push("/signin")}
                 >
                   Sign in
                 </Button>
                 <Button
                   size="sm"
-                  className="rounded-full text-xs font-light shadow-sm shadow-primary/20"
+                  className="rounded-full text-xs font-semibold shadow-sm shadow-primary/20"
                   onClick={() => router.push("/signup")}
                 >
                   Get started
@@ -363,117 +363,7 @@ export function StudyCompanion() {
 
         {/* Main Content Area */}
         <div className="relative z-10 mx-auto max-w-7xl px-6 py-12 md:py-20 lg:py-24">
-          <div className="grid items-center gap-12 lg:grid-cols-[1.1fr_.9fr]">
-            {/* Left Column */}
-            <motion.div
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, ease: "easeOut" }}
-              className="flex flex-col items-start"
-            >
-              {/* Bolder Headline with Left-to-Right Entrance & Left-to-Right Text Light Shimmer */}
-              <h1 className="text-balance text-5xl font-semibold tracking-tight text-foreground md:text-6xl lg:text-7xl">
-                <motion.span
-                  initial={{ opacity: 0, x: -40 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.6, ease: "easeOut" }}
-                  className="block font-semibold"
-                >
-                  Study steadily.
-                </motion.span>
-
-                <motion.span
-                  initial={{ opacity: 0, x: -40 }}
-                  animate={{
-                    opacity: 1,
-                    x: 0,
-                  }}
-                  transition={{
-                    x: { duration: 0.6, delay: 0.2, ease: "easeOut" },
-                    opacity: { duration: 0.6, delay: 0.2, ease: "easeOut" },
-                  }}
-                  className="block font-bold inline-block text-primary"
-                >
-                  Grow together.
-                </motion.span>
-              </h1>
-
-              <p className="mt-6 max-w-xl text-pretty text-base font-light leading-relaxed text-muted-foreground md:text-lg">
-                A calm, trusted space for Muslim sisters at AASTU to find course resources, share study material, and build consistency together.
-              </p>
-
-              <div className="mt-8 flex flex-wrap items-center gap-4">
-                <Button
-                  size="lg"
-                  className="group rounded-full px-8 font-light shadow-md shadow-primary/20 transition-all hover:shadow-primary/30"
-                  onClick={() => router.push("/signin")}
-                >
-                  Sign in to access
-                  <ArrowRight className="ml-2 size-4 transition-transform group-hover:translate-x-1" />
-                </Button>
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="rounded-full px-8 font-light hover:bg-muted/50"
-                  onClick={() => router.push("/signup")}
-                >
-                  Create account
-                </Button>
-              </div>
-            </motion.div>
-
-            {/* Right Column: Floating Container */}
-            <motion.div
-              animate={{ y: [0, -12, 0] }}
-              transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-              className="relative mx-auto w-full max-w-md lg:max-w-none"
-            >
-              <div className="rounded-3xl border border-border/50 bg-background/60 p-8 backdrop-blur-xl shadow-xl shadow-primary/5">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-xs font-light text-muted-foreground">Daily Momentum</p>
-                    <p className="mt-1 text-2xl font-normal text-foreground">Every session counts.</p>
-                  </div>
-                  <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                    <Flame className="size-5 text-amber-500" />
-                  </div>
-                </div>
-
-                <div className="mt-6 rounded-2xl border border-border/40 bg-muted/30 p-5">
-                  <div className="flex items-center justify-between text-xs font-light">
-                    <span className="text-muted-foreground">Weekly Goal Progress</span>
-                    <span className="font-medium text-foreground">68%</span>
-                  </div>
-
-                  {/* Dynamic Progress Bar */}
-                  <div className="relative mt-3 h-2.5 w-full overflow-hidden rounded-full bg-muted">
-                    <motion.div
-                      initial={{ width: "0%" }}
-                      animate={{ width: ["60%", "72%", "68%"] }}
-                      transition={{ duration: 4, repeat: Infinity, repeatType: "reverse", ease: "easeInOut" }}
-                      className="relative h-full rounded-full bg-primary"
-                    >
-                      <motion.div
-                        animate={{ x: ["-100%", "200%"] }}
-                        transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
-                        className="absolute inset-0 w-1/2 bg-gradient-to-r from-transparent via-white/40 to-transparent"
-                      />
-                    </motion.div>
-                  </div>
-                </div>
-
-                {/* Badge inside the container */}
-                <div className="mt-6 flex items-center gap-3 rounded-2xl border border-border/40 bg-background/40 p-3.5 backdrop-blur-sm">
-                  <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                    <Users className="size-4" />
-                  </div>
-                  <span className="text-xs font-light text-muted-foreground">
-                    Shared and verified by sisters across AASTU departments
-                  </span>
-                </div>
-              </div>
-            </motion.div>
-          </div>
+          <LandingHero />
         </div>
 
         {/* Footer */}
@@ -543,7 +433,11 @@ export function StudyCompanion() {
         </div>
       </header>
 
-      {tab === "home" && <Home onExplore={() => setTab("resources")} onTimer={() => setTab("dashboard")} />}
+      {tab === "home" && (
+        <div className="relative z-10 mx-auto max-w-7xl px-6 py-12 md:py-16">
+          <LandingHero />
+        </div>
+      )}
 
       {tab === "resources" && (
         <Resources
@@ -638,6 +532,116 @@ export function StudyCompanion() {
         </div>
       </nav>
     </main>
+  )
+}
+
+function LandingHero() {
+  return (
+    <div className="grid items-center gap-12 lg:grid-cols-[1.1fr_.9fr]">
+      {/* Left Column */}
+      <motion.div
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+        className="flex flex-col items-start"
+      >
+        {/* Headline with Left-to-Right Entrance */}
+        <h1 className="text-balance text-5xl font-semibold tracking-tight text-foreground md:text-6xl lg:text-7xl">
+          <motion.span
+            initial={{ opacity: 0, x: -40 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+            className="block"
+          >
+            Study steadily.
+          </motion.span>
+
+          <motion.span
+            initial={{ opacity: 0, x: -40 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ x: { duration: 0.6, delay: 0.2, ease: "easeOut" }, opacity: { duration: 0.6, delay: 0.2, ease: "easeOut" } }}
+            className="block text-primary"
+          >
+            Grow together.
+          </motion.span>
+        </h1>
+
+        <p className="mt-6 max-w-xl text-pretty text-base font-normal leading-relaxed text-muted-foreground md:text-lg">
+          A calm, trusted space for Muslim sisters at AASTU to find course resources, share study material, and build consistency together.
+        </p>
+
+        <div className="mt-8 flex flex-wrap items-center gap-4">
+          <Button
+            size="lg"
+            className="group rounded-full px-8 font-semibold shadow-md shadow-primary/20 transition-all hover:shadow-primary/30"
+            onClick={() => router.push("/signin")}
+          >
+            Sign in to access
+            <ArrowRight className="ml-2 size-4 transition-transform group-hover:translate-x-1" />
+          </Button>
+          <Button
+            size="lg"
+            variant="outline"
+            className="rounded-full px-8 font-semibold hover:bg-muted/50"
+            onClick={() => router.push("/signup")}
+          >
+            Create account
+          </Button>
+        </div>
+      </motion.div>
+
+      {/* Right Column: Floating Container */}
+      <motion.div
+        animate={{ y: [0, -12, 0] }}
+        transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+        className="relative mx-auto flex w-full max-w-md flex-col justify-center"
+      >
+        <div className="w-full rounded-3xl border border-border/50 bg-background/60 p-8 backdrop-blur-xl shadow-xl shadow-primary/5">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs font-medium text-muted-foreground">Daily Momentum</p>
+              <p className="mt-1 text-2xl font-semibold text-foreground">Every session counts.</p>
+            </div>
+            <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <Flame className="size-5 text-amber-500" />
+            </div>
+          </div>
+
+          <div className="mt-6 rounded-2xl border border-border/40 bg-muted/30 p-5">
+            <div className="flex items-center justify-between text-xs font-medium">
+              <span className="text-muted-foreground">Weekly Goal Progress</span>
+              <span className="font-semibold text-foreground">68%</span>
+            </div>
+
+            {/* Dynamic Progress Bar */}
+            <div className="relative mt-3 h-2.5 w-full overflow-hidden rounded-full bg-muted">
+              <motion.div
+                initial={{ width: "0%" }}
+                animate={{ width: ["60%", "72%", "68%"] }}
+                transition={{ duration: 4, repeat: Infinity, repeatType: "reverse", ease: "easeInOut" }}
+                className="relative h-full rounded-full bg-primary"
+              >
+                <motion.div
+                  animate={{ x: ["-100%", "200%"] }}
+                  transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+                  className="absolute inset-0 w-1/2 bg-gradient-to-r from-transparent via-white/40 to-transparent"
+                />
+              </motion.div>
+            </div>
+          </div>
+
+          {/* Badge inside the container */}
+          <div className="mt-6 flex items-center gap-3 rounded-2xl border border-border/40 bg-background/40 p-3.5 backdrop-blur-sm">
+            <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <Users className="size-4" />
+            </div>
+            <span className="text-xs font-medium text-muted-foreground">
+              Shared and verified by sisters across AASTU departments
+            </span>
+          </div>
+        </div>
+      </motion.div>
+    </div>
   )
 }
 
