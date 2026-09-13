@@ -103,6 +103,44 @@ function getUploadConfig(): Promise<UploadConfig> {
 }
 const FOCUS_SECONDS = 25 * 60
 
+function isoKey(d: Date): string {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, "0")
+  const day = String(d.getDate()).padStart(2, "0")
+  return `${y}-${m}-${day}`
+}
+
+function currentStudyStreak(dates: string[]): number {
+  const studied = new Set(dates)
+  const cursor = new Date()
+  if (!studied.has(isoKey(cursor))) cursor.setDate(cursor.getDate() - 1)
+  let count = 0
+  while (studied.has(isoKey(cursor))) {
+    count += 1
+    cursor.setDate(cursor.getDate() - 1)
+  }
+  return count
+}
+
+function longestStudyStreak(dates: string[]): number {
+  const set = new Set(dates)
+  let longest = 0
+  for (const dateStr of set) {
+    const [y, m, day] = dateStr.split("-").map(Number)
+    const cursor = new Date(y, m - 1, day)
+    cursor.setDate(cursor.getDate() - 1)
+    if (set.has(isoKey(cursor))) continue
+    const run = new Date(y, m - 1, day)
+    let count = 0
+    while (set.has(isoKey(run))) {
+      count += 1
+      run.setDate(run.getDate() + 1)
+    }
+    longest = Math.max(longest, count)
+  }
+  return longest
+}
+
 export function StudyCompanion() {
   const router = useRouter()
   const [tab, setTab] = useState<"home" | "resources" | "dashboard" | "profile" | "share">("home")
@@ -123,6 +161,8 @@ export function StudyCompanion() {
   const [seconds, setSeconds] = useState(FOCUS_SECONDS)
   const [running, setRunning] = useState(false)
   const [sessions, setSessions] = useState(0)
+  const [focusMinutes, setFocusMinutes] = useState(25)
+  const [dayTotals, setDayTotals] = useState<Record<string, number>>({})
 
   const syncProfile = useCallback(() => {
     const currentProfile = getCurrentStudentProfile()
@@ -185,8 +225,52 @@ export function StudyCompanion() {
     if (seconds === 0 && running) {
       setRunning(false)
       setSessions((s) => s + 1)
+      const today = isoKey(new Date())
+      setDayTotals((prev) => ({ ...prev, [today]: (prev[today] || 0) + focusMinutes }))
     }
-  }, [seconds, running])
+  }, [seconds, running, focusMinutes])
+
+  useEffect(() => {
+    localStorage.setItem("aastu.study.sessions", String(sessions))
+  }, [sessions])
+
+  useEffect(() => {
+    localStorage.setItem("aastu.study.minutes", String(focusMinutes))
+  }, [focusMinutes])
+
+  useEffect(() => {
+    localStorage.setItem("aastu.study.days", JSON.stringify(dayTotals))
+  }, [dayTotals])
+
+  useEffect(() => {
+    const minutes = Number(localStorage.getItem("aastu.study.minutes") ?? 25)
+    const storedMinutes = minutes >= 1 && minutes <= 240 ? minutes : 25
+    setFocusMinutes(storedMinutes)
+    setSeconds(storedMinutes * 60)
+    const storedSessions = Number(localStorage.getItem("aastu.study.sessions") ?? 0)
+    if (storedSessions > 0) setSessions(storedSessions)
+    try {
+      const parsed = JSON.parse(localStorage.getItem("aastu.study.days") || "{}")
+      if (parsed && typeof parsed === "object") setDayTotals(parsed as Record<string, number>)
+    } catch {
+      // ignore corrupt storage
+    }
+  }, [])
+
+  const studiedDays = useMemo(() => Object.keys(dayTotals), [dayTotals])
+  const streak = useMemo(() => currentStudyStreak(studiedDays), [studiedDays])
+  const longestStreak = useMemo(() => longestStudyStreak(studiedDays), [studiedDays])
+  const todayMinutes = dayTotals[isoKey(new Date())] || 0
+  const weekMinutes = useMemo(() => {
+    let total = 0
+    const now = new Date()
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(now)
+      d.setDate(now.getDate() - i)
+      total += dayTotals[isoKey(d)] || 0
+    }
+    return total
+  }, [dayTotals])
 
   const activeCollege = profile?.college || college
   const activeDepartment = profile?.department || department
@@ -495,10 +579,18 @@ export function StudyCompanion() {
           clock={clock}
           running={running}
           setRunning={setRunning}
-          sessions={sessions}
-          setSessions={setSessions}
           seconds={seconds}
           setSeconds={setSeconds}
+          focusMinutes={focusMinutes}
+          setFocusMinutes={setFocusMinutes}
+          sessions={sessions}
+          setSessions={setSessions}
+          dayTotals={dayTotals}
+          setDayTotals={setDayTotals}
+          streak={streak}
+          longestStreak={longestStreak}
+          todayMinutes={todayMinutes}
+          weekMinutes={weekMinutes}
           resourceCount={filtered.length}
         />
       )}
@@ -1485,47 +1577,143 @@ function Dashboard(props: {
   clock: string
   running: boolean
   setRunning: (v: boolean) => void
-  sessions: number
-  setSessions: (v: number) => void
   seconds: number
   setSeconds: (v: number) => void
+  focusMinutes: number
+  setFocusMinutes: (v: number) => void
+  sessions: number
+  setSessions: (v: number) => void
+  dayTotals: Record<string, number>
+  setDayTotals: (v: Record<string, number> | ((prev: Record<string, number>) => Record<string, number>)) => void
+  streak: number
+  longestStreak: number
+  todayMinutes: number
+  weekMinutes: number
   resourceCount: number
 }) {
-  const { clock, running, setRunning, sessions, setSessions, seconds, setSeconds, resourceCount } = props
+  const {
+    clock,
+    running,
+    setRunning,
+    seconds,
+    setSeconds,
+    focusMinutes,
+    setFocusMinutes,
+    sessions,
+    setSessions,
+    dayTotals,
+    setDayTotals,
+    streak,
+    longestStreak,
+    todayMinutes,
+    weekMinutes,
+    resourceCount,
+  } = props
+
+  const DURATIONS = [5, 10, 15, 25, 45, 60]
+
+  const chooseDuration = (mins: number) => {
+    if (running) return
+    setFocusMinutes(mins)
+    setSeconds(mins * 60)
+  }
 
   const toggle = () => {
     if (running) {
       setRunning(false)
       return
     }
-    if (seconds === 0) setSeconds(FOCUS_SECONDS)
+    if (seconds === 0) setSeconds(focusMinutes * 60)
     setRunning(true)
   }
 
   const reset = () => {
     setRunning(false)
-    setSeconds(FOCUS_SECONDS)
+    setSeconds(focusMinutes * 60)
   }
 
-  const resetSessions = () => setSessions(0)
+  const resetStats = () => {
+    if (window.confirm("Clear your study history? This cannot be undone.")) {
+      setSessions(0)
+      setDayTotals({})
+    }
+  }
+
+  const week = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date()
+    d.setDate(d.getDate() - (6 - i))
+    return {
+      key: isoKey(d),
+      label: d.toLocaleDateString(undefined, { weekday: "narrow" }),
+      minutes: dayTotals[isoKey(d)] || 0,
+    }
+  })
+  const weekMax = Math.max(60, ...week.map((w) => w.minutes))
 
   return (
-    <div className="mx-auto max-w-7xl px-5 py-10">
+    <div className="mx-auto w-full max-w-7xl px-5 py-10">
       <p className="text-sm font-medium text-primary">Study companion</p>
       <h1 className="mt-2 text-4xl font-semibold tracking-tight">Make space for deep work.</h1>
       <div className="mt-10 grid gap-5 lg:grid-cols-[1.1fr_.9fr]">
         <section className="rounded-3xl border border-border bg-card p-8">
-          <div className="flex items-center justify-between">
+          <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-sm text-muted-foreground">Today's focus</p>
-              <h2 className="mt-1 text-xl font-semibold">One focused session at a time.</h2>
+              <h2 className="mt-1 text-xl font-semibold">Pick your minutes, protect your focus.</h2>
             </div>
             <Brain className="text-primary" />
           </div>
-          <p className="my-12 text-center font-mono text-7xl font-semibold tracking-tight">{props.clock}</p>
+
+          {/* Duration picker */}
+          <div className="mt-6">
+            <p className="text-sm font-medium text-foreground">Session length</p>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              {DURATIONS.map((mins) => {
+                const active = !running && focusMinutes === mins
+                return (
+                  <button
+                    key={mins}
+                    onClick={() => chooseDuration(mins)}
+                    disabled={running}
+                    className={`rounded-full px-4 py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                      active
+                        ? "bg-primary text-primary-foreground shadow-sm shadow-primary/20"
+                        : "border border-border bg-background hover:border-primary/50"
+                    }`}
+                  >
+                    {mins} min
+                  </button>
+                )
+              })}
+            </div>
+            <div className="mt-3 flex items-center gap-2">
+              <label htmlFor="custom-minutes" className="text-sm text-muted-foreground">
+                Custom
+              </label>
+              <input
+                id="custom-minutes"
+                type="number"
+                min={1}
+                max={240}
+                value={focusMinutes}
+                disabled={running}
+                onChange={(e) => {
+                  const mins = Number(e.target.value)
+                  if (mins >= 1 && mins <= 240) {
+                    setFocusMinutes(mins)
+                    if (!running) setSeconds(mins * 60)
+                  }
+                }}
+                className="h-9 w-24 rounded-xl border border-border bg-background px-3 text-sm outline-none focus:border-primary"
+              />
+              <span className="text-sm text-muted-foreground">minutes per session</span>
+            </div>
+          </div>
+
+          <p className="my-10 text-center font-mono text-7xl font-semibold tracking-tight">{clock}</p>
           <div className="flex justify-center gap-3">
             <Button size="lg" onClick={toggle}>
-              {running ? "Pause" : "Start focus"}
+              {running ? "Pause" : seconds === 0 ? "Start focus" : "Resume"}
               <Play data-icon="inline-end" />
             </Button>
             <Button size="lg" variant="outline" onClick={reset}>
@@ -1533,36 +1721,56 @@ function Dashboard(props: {
             </Button>
           </div>
           {seconds === 0 && !running && (
-            <p className="mt-4 text-center text-sm text-primary">Session complete — well done. Start again for another round.</p>
+            <p className="mt-4 text-center text-sm text-primary">Session complete — well done. Start another round to keep the streak alive.</p>
           )}
         </section>
+
         <div className="flex flex-col gap-5">
           <div className="rounded-3xl bg-primary p-7 text-primary-foreground">
-            <Clock3 />
-            <p className="mt-8 text-4xl font-semibold">{sessions * 25 + 85} min</p>
-            <p className="mt-1 opacity-80">of focused study this week</p>
+            <Flame className="text-amber-300" />
+            <p className="mt-8 text-4xl font-semibold">{todayMinutes} min</p>
+            <p className="mt-1 opacity-80">studied today</p>
+            <div className="mt-6 rounded-2xl bg-background/15 p-4">
+              <div className="flex items-end justify-between gap-1">
+                {week.map((d) => {
+                  const h = Math.max(6, Math.round((d.minutes / weekMax) * 72))
+                  return (
+                    <div key={d.key} className="flex flex-1 flex-col items-center gap-1">
+                      <div className="w-full rounded-md bg-primary-foreground/90" style={{ height: `${h}px` }} title={`${d.label}: ${d.minutes} min`} />
+                      <span className="text-[10px] opacity-80">{d.label}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+            <p className="mt-3 text-sm opacity-90">{weekMinutes} min this week</p>
           </div>
+
           <div className="rounded-3xl border border-border bg-card p-7">
             <div className="flex items-center justify-between">
               <h3 className="font-semibold">Your rhythm</h3>
-              {sessions > 0 && (
-                <button onClick={resetSessions} className="text-xs text-muted-foreground underline-offset-2 hover:underline">
-                  Reset sessions
+              {(sessions > 0 || todayMinutes > 0) && (
+                <button onClick={resetStats} className="text-xs text-muted-foreground underline-offset-2 hover:underline">
+                  Reset stats
                 </button>
               )}
             </div>
             <div className="mt-6 grid grid-cols-3 gap-3 text-center">
               <div>
-                <p className="text-2xl font-semibold">7</p>
+                <p className="text-2xl font-semibold">{streak}</p>
                 <p className="text-xs text-muted-foreground">Day streak</p>
               </div>
               <div>
-                <p className="text-2xl font-semibold">{resourceCount}</p>
-                <p className="text-xs text-muted-foreground">Resources</p>
+                <p className="text-2xl font-semibold">{longestStreak}</p>
+                <p className="text-xs text-muted-foreground">Longest streak</p>
               </div>
               <div>
                 <p className="text-2xl font-semibold">{sessions}</p>
                 <p className="text-xs text-muted-foreground">Sessions</p>
+              </div>
+              <div>
+                <p className="text-2xl font-semibold">{resourceCount}</p>
+                <p className="text-xs text-muted-foreground">Resources</p>
               </div>
             </div>
           </div>
