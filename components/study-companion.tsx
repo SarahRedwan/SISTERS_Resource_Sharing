@@ -283,7 +283,7 @@ export function StudyCompanion() {
 
   if (!profile) {
     return (
-      <main className="relative min-h-screen overflow-x-hidden bg-background text-foreground selection:bg-primary selection:text-primary-foreground">
+      <main className="relative flex min-h-screen flex-col overflow-x-hidden bg-background text-foreground selection:bg-primary selection:text-primary-foreground">
         {/* Canvas Lighting */}
         <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
           <div
@@ -362,7 +362,7 @@ export function StudyCompanion() {
         </header>
 
         {/* Main Content Area */}
-        <div className="relative z-10 mx-auto max-w-7xl px-6 py-12 md:py-20 lg:py-24">
+        <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-1 flex-col justify-center px-6 py-10 md:py-14">
           <LandingHero />
         </div>
 
@@ -381,7 +381,7 @@ export function StudyCompanion() {
   }
 
   return (
-    <main className="min-h-screen bg-background pb-20 text-foreground md:pb-0">
+    <main className="flex min-h-screen flex-col bg-background pb-20 text-foreground md:pb-0">
       <header className="sticky top-0 z-40 border-b border-border/70 bg-background/90 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-4">
           <button onClick={() => setTab("home")} className="flex items-center gap-3 text-left">
@@ -434,8 +434,8 @@ export function StudyCompanion() {
       </header>
 
       {tab === "home" && (
-        <div className="relative z-10 mx-auto max-w-7xl px-6 py-12 md:py-16">
-          <LandingHero />
+        <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-1 flex-col justify-center px-6 py-10 md:py-14">
+          <LandingHero showAuthButtons={false} />
         </div>
       )}
 
@@ -499,7 +499,7 @@ export function StudyCompanion() {
         />
       )}
 
-      <footer className="mx-auto mt-20 max-w-7xl border-t border-border px-5 py-8 text-sm text-muted-foreground">
+      <footer className="mx-auto mt-auto w-full max-w-7xl border-t border-border px-5 py-8 text-sm text-muted-foreground">
         <div className="flex flex-col justify-between gap-3 md:flex-row">
           <span>Built for AASTU Muslim Sisters.</span>
           <span className="flex items-center gap-2">
@@ -535,7 +535,9 @@ export function StudyCompanion() {
   )
 }
 
-function LandingHero() {
+function LandingHero({ showAuthButtons = true }: { showAuthButtons?: boolean }) {
+  const router = useRouter()
+
   return (
     <div className="grid items-center gap-12 lg:grid-cols-[1.1fr_.9fr]">
       {/* Left Column */}
@@ -570,24 +572,26 @@ function LandingHero() {
           A calm, trusted space for Muslim sisters at AASTU to find course resources, share study material, and build consistency together.
         </p>
 
-        <div className="mt-8 flex flex-wrap items-center gap-4">
-          <Button
-            size="lg"
-            className="group rounded-full px-8 font-semibold shadow-md shadow-primary/20 transition-all hover:shadow-primary/30"
-            onClick={() => router.push("/signin")}
-          >
-            Sign in to access
-            <ArrowRight className="ml-2 size-4 transition-transform group-hover:translate-x-1" />
-          </Button>
-          <Button
-            size="lg"
-            variant="outline"
-            className="rounded-full px-8 font-semibold hover:bg-muted/50"
-            onClick={() => router.push("/signup")}
-          >
-            Create account
-          </Button>
-        </div>
+        {showAuthButtons && (
+          <div className="mt-8 flex flex-wrap items-center gap-4">
+            <Button
+              size="lg"
+              className="group rounded-full px-8 font-semibold shadow-md shadow-primary/20 transition-all hover:shadow-primary/30"
+              onClick={() => router.push("/signin")}
+            >
+              Sign in to access
+              <ArrowRight className="ml-2 size-4 transition-transform group-hover:translate-x-1" />
+            </Button>
+            <Button
+              size="lg"
+              variant="outline"
+              className="rounded-full px-8 font-semibold hover:bg-muted/50"
+              onClick={() => router.push("/signup")}
+            >
+              Create account
+            </Button>
+          </div>
+        )}
       </motion.div>
 
       {/* Right Column: Floating Container */}
