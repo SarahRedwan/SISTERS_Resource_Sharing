@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { motion, AnimatePresence } from "framer-motion"
 import {
   ArrowRight,
   BookOpen,
@@ -282,82 +283,209 @@ export function StudyCompanion() {
 
   if (!profile) {
     return (
-      <main className="min-h-screen bg-background text-foreground">
-        <header className="sticky top-0 z-40 border-b border-border/70 bg-background/90 backdrop-blur-xl">
-          <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-4">
-            <div className="flex items-center gap-3 text-left">
-              <span className="flex size-10 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/20">
-                <BookOpen />
-              </span>
-              <span>
-                <span className="block font-semibold tracking-tight">AASTU Muslim Sisters</span>
-                <span className="hidden text-xs text-muted-foreground sm:block">Learn with purpose</span>
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon" aria-label="Toggle theme" onClick={() => setDark((v) => !v)}>
-                {dark ? <Sun /> : <Moon />}
+      <main className="relative min-h-screen overflow-x-hidden bg-background text-foreground selection:bg-primary selection:text-primary-foreground">
+        {/* Canvas Lighting */}
+        <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+          <div
+            className="absolute -bottom-1/2 -left-1/2 h-[200%] w-[200%] opacity-35 blur-3xl"
+            style={{
+              background: "linear-gradient(45deg, transparent 40%, rgba(52, 211, 153, 0.3) 50%, transparent 60%)"
+            }}
+          />
+          <div
+            className="absolute -bottom-1/2 -left-1/2 h-[200%] w-[200%] opacity-60"
+            style={{
+              background: "linear-gradient(45deg, transparent 49.6%, rgba(167, 243, 208, 0.7) 50%, transparent 50.4%)"
+            }}
+          />
+          <div className="absolute -bottom-20 -left-20 size-96 rounded-full bg-primary/10 blur-[120px]" />
+          <div className="absolute -top-20 -right-20 size-96 rounded-full bg-primary/10 blur-[120px]" />
+        </div>
+
+        {/* Header */}
+        <header className="sticky top-0 z-50 border-b border-border/40 bg-background/70 backdrop-blur-2xl transition-all">
+          <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-4">
+            <motion.button
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.99 }}
+              onClick={() => setTab("home")}
+              className="flex items-center gap-3 text-left focus:outline-none"
+            >
+              <div className="relative flex size-9 items-center justify-center rounded-xl bg-gradient-to-tr from-primary to-primary/80 text-primary-foreground shadow-md shadow-primary/20">
+                <BookOpen className="size-4" />
+              </div>
+              <div>
+                <span className="block text-sm font-semibold tracking-tight text-foreground">AASTU Muslim Sisters</span>
+                <span className="block text-[11px] font-light text-muted-foreground">Learn with purpose</span>
+              </div>
+            </motion.button>
+
+            <div className="flex items-center gap-3">
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="Toggle theme"
+                onClick={() => setDark((v) => !v)}
+                className="rounded-full hover:bg-muted/50"
+              >
+                <AnimatePresence mode="wait" initial={false}>
+                  <motion.div
+                    key={dark ? "dark" : "light"}
+                    initial={{ opacity: 0, rotate: -90 }}
+                    animate={{ opacity: 1, rotate: 0 }}
+                    exit={{ opacity: 0, rotate: 90 }}
+                    transition={{ duration: 0.15 }}
+                  >
+                    {dark ? <Sun className="size-4 text-amber-400" /> : <Moon className="size-4 text-slate-700" />}
+                  </motion.div>
+                </AnimatePresence>
               </Button>
+
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  className="rounded-full text-xs font-light hover:bg-muted/50"
+                  onClick={() => router.push("/signin")}
+                >
+                  Sign in
+                </Button>
+                <Button
+                  size="sm"
+                  className="rounded-full text-xs font-light shadow-sm shadow-primary/20"
+                  onClick={() => router.push("/signup")}
+                >
+                  Get started
+                </Button>
+              </div>
             </div>
           </div>
         </header>
 
-        <div className="mx-auto max-w-7xl px-5 py-20 md:py-28">
-          <div className="relative overflow-hidden rounded-[2rem] border border-border bg-card p-8 shadow-xl md:p-12">
-            <div className="grid items-center gap-10 md:grid-cols-[1.1fr_.9fr]">
-              <div>
-                <h1 className="max-w-3xl text-balance text-5xl font-semibold leading-[1.05] tracking-[-0.04em] md:text-7xl">
+        {/* Main Content Area */}
+        <div className="relative z-10 mx-auto max-w-7xl px-6 py-12 md:py-20 lg:py-24">
+          <div className="grid items-center gap-12 lg:grid-cols-[1.1fr_.9fr]">
+            {/* Left Column */}
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, ease: "easeOut" }}
+              className="flex flex-col items-start"
+            >
+              {/* Bolder Headline with Left-to-Right Entrance & Left-to-Right Text Light Shimmer */}
+              <h1 className="text-balance text-5xl font-semibold tracking-tight text-foreground md:text-6xl lg:text-7xl">
+                <motion.span
+                  initial={{ opacity: 0, x: -40 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.6, ease: "easeOut" }}
+                  className="block font-semibold"
+                >
                   Study steadily.
-                  <br />
-                  <span className="text-primary">Grow together.</span>
-                </h1>
-                <p className="mt-6 max-w-xl text-pretty text-lg leading-8 text-muted-foreground">
-                  A calm, trusted space for Muslim sisters at AASTU to find notes, share what they know, and build a study rhythm that lasts.
-                </p>
-                <div className="mt-8 flex flex-wrap gap-3">
-                  <Button size="lg" onClick={() => router.push("/signin")}>
-                    Sign in
-                  </Button>
-                  <Button size="lg" variant="outline" onClick={() => router.push("/signup")}>
-                    Sign up
-                  </Button>
-                </div>
-              </div>
+                </motion.span>
 
-              <div className="relative">
-                <div className="rounded-[2rem] bg-primary p-6 text-primary-foreground shadow-2xl shadow-primary/20 md:p-8">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="text-sm opacity-75">A little progress</p>
-                      <p className="mt-1 text-3xl font-semibold">Every day counts.</p>
-                    </div>
-                    <Flame className="size-7" />
+                <motion.span
+                  initial={{ opacity: 0, x: -40 }}
+                  animate={{
+                    opacity: 1,
+                    x: 0,
+                  }}
+                  transition={{
+                    x: { duration: 0.6, delay: 0.2, ease: "easeOut" },
+                    opacity: { duration: 0.6, delay: 0.2, ease: "easeOut" },
+                  }}
+                  className="block font-bold inline-block text-primary"
+                >
+                  Grow together.
+                </motion.span>
+              </h1>
+
+              <p className="mt-6 max-w-xl text-pretty text-base font-light leading-relaxed text-muted-foreground md:text-lg">
+                A calm, trusted space for Muslim sisters at AASTU to find course resources, share study material, and build consistency together.
+              </p>
+
+              <div className="mt-8 flex flex-wrap items-center gap-4">
+                <Button
+                  size="lg"
+                  className="group rounded-full px-8 font-light shadow-md shadow-primary/20 transition-all hover:shadow-primary/30"
+                  onClick={() => router.push("/signin")}
+                >
+                  Sign in to access
+                  <ArrowRight className="ml-2 size-4 transition-transform group-hover:translate-x-1" />
+                </Button>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="rounded-full px-8 font-light hover:bg-muted/50"
+                  onClick={() => router.push("/signup")}
+                >
+                  Create account
+                </Button>
+              </div>
+            </motion.div>
+
+            {/* Right Column: Floating Container */}
+            <motion.div
+              animate={{ y: [0, -12, 0] }}
+              transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+              className="relative mx-auto w-full max-w-md lg:max-w-none"
+            >
+              <div className="rounded-3xl border border-border/50 bg-background/60 p-8 backdrop-blur-xl shadow-xl shadow-primary/5">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-xs font-light text-muted-foreground">Daily Momentum</p>
+                    <p className="mt-1 text-2xl font-normal text-foreground">Every session counts.</p>
                   </div>
-                  <div className="mt-10 rounded-3xl bg-primary-foreground/10 p-5">
-                    <div className="flex items-center justify-between text-sm">
-                      <span>Weekly focus</span>
-                      <span>68%</span>
-                    </div>
-                    <div className="mt-3 h-2 rounded-full bg-primary-foreground/20">
-                      <div className="h-2 w-[68%] rounded-full bg-primary-foreground" />
-                    </div>
+                  <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                    <Flame className="size-5 text-amber-500" />
                   </div>
                 </div>
-                <div className="absolute -bottom-5 -left-5 rounded-2xl border border-border bg-card p-4 shadow-xl">
-                  <div className="flex items-center gap-3">
-                    <div className="flex size-10 items-center justify-center rounded-xl bg-muted">
-                      <Users className="size-5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold">Shared by sisters</p>
-                      <p className="text-xs text-muted-foreground">Notes that help you move forward</p>
-                    </div>
+
+                <div className="mt-6 rounded-2xl border border-border/40 bg-muted/30 p-5">
+                  <div className="flex items-center justify-between text-xs font-light">
+                    <span className="text-muted-foreground">Weekly Goal Progress</span>
+                    <span className="font-medium text-foreground">68%</span>
                   </div>
+
+                  {/* Dynamic Progress Bar */}
+                  <div className="relative mt-3 h-2.5 w-full overflow-hidden rounded-full bg-muted">
+                    <motion.div
+                      initial={{ width: "0%" }}
+                      animate={{ width: ["60%", "72%", "68%"] }}
+                      transition={{ duration: 4, repeat: Infinity, repeatType: "reverse", ease: "easeInOut" }}
+                      className="relative h-full rounded-full bg-primary"
+                    >
+                      <motion.div
+                        animate={{ x: ["-100%", "200%"] }}
+                        transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+                        className="absolute inset-0 w-1/2 bg-gradient-to-r from-transparent via-white/40 to-transparent"
+                      />
+                    </motion.div>
+                  </div>
+                </div>
+
+                {/* Badge inside the container */}
+                <div className="mt-6 flex items-center gap-3 rounded-2xl border border-border/40 bg-background/40 p-3.5 backdrop-blur-sm">
+                  <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <Users className="size-4" />
+                  </div>
+                  <span className="text-xs font-light text-muted-foreground">
+                    Shared and verified by sisters across AASTU departments
+                  </span>
                 </div>
               </div>
-            </div>
+            </motion.div>
           </div>
         </div>
+
+        {/* Footer */}
+        <footer className="relative z-10 mx-auto mt-12 max-w-7xl border-t border-border/40 px-6 py-8 text-xs font-light text-muted-foreground">
+          <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
+            <span>&copy; AASTU Muslim Sisters Academic Platform</span>
+            <span className="flex items-center gap-1.5">
+              <ShieldCheck className="size-4 text-primary" />
+              Verified &amp; Moderated Peer Space
+            </span>
+          </div>
+        </footer>
       </main>
     )
   }
