@@ -1045,7 +1045,6 @@ function Resources(props: {
   onSaved: () => void
 }) {
   const { college, department, year, semester, type, query, filtered, loading, loadError, setQuery, setType, choose, onSaved } = props
-  const [preview, setPreview] = useState<Resource | null>(null)
 
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this resource?")) return
@@ -1168,12 +1167,14 @@ function Resources(props: {
                 {r.fileUrl && (
                   <>
                     {isPreviewable(r.mimeType || "", r.fileName) && (
-                      <button
-                        onClick={() => setPreview(r)}
+                      <a
+                        href={inlinePreviewUrl(r.fileUrl || "")}
+                        target="_blank"
+                        rel="noopener noreferrer"
                         className="text-xs underline underline-offset-2 hover:opacity-90"
                       >
                         Preview
-                      </button>
+                      </a>
                     )}
                     <a href={r.fileUrl} download={r.fileName} className="text-xs underline hover:opacity-90">
                       Download
@@ -1199,63 +1200,8 @@ function Resources(props: {
           </div>
         )}
       </div>
-
-      {preview && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
-          onClick={() => setPreview(null)}
-        >
-          <div
-            className="flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between gap-3 border-b border-border p-4">
-              <div className="min-w-0 flex-1">
-                <p className="truncate font-semibold">{preview.fileName || preview.course}</p>
-                <p className="truncate text-xs text-muted-foreground">
-                  {preview.course} · {preview.type}
-                </p>
-              </div>
-              <div className="flex shrink-0 items-center gap-3">
-                <a
-                  href={preview.fileUrl}
-                  download={preview.fileName}
-                  className="text-sm underline underline-offset-2 hover:opacity-90"
-                >
-                  Download
-                </a>
-                <button
-                  onClick={() => setPreview(null)}
-                  className="rounded-full border border-border px-3 py-1.5 text-sm hover:border-primary/50"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-            <div className="flex-1 overflow-auto bg-muted p-4">
-              <PreviewBody resource={preview} />
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
-}
-
-function PreviewBody({ resource }: { resource: Resource }) {
-  const url = inlinePreviewUrl(resource.fileUrl || "")
-  const mime = (resource.mimeType || "").toLowerCase()
-
-  if (mime.startsWith("image/")) {
-    return <img src={url} alt={resource.fileName || resource.course} className="mx-auto max-h-[75vh] w-auto rounded-xl object-contain" />
-  }
-  if (mime.startsWith("video/")) {
-    return <video controls src={url} className="mx-auto max-h-[75vh] w-auto rounded-xl" />
-  }
-  if (mime.startsWith("audio/")) {
-    return <audio controls src={url} className="mx-auto w-full max-w-xl" />
-  }
-  return <iframe src={url} title="File preview" className="h-[75vh] w-full rounded-xl border-0 bg-white" />
 }
 
 function ShareResource({
