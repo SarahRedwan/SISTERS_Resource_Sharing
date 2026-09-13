@@ -1,6 +1,7 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useState, useRef } from "react"
+import { motion, AnimatePresence } from "framer-motion"
 import {
   ArrowRight,
   BookOpen,
@@ -13,13 +14,16 @@ import {
   FolderOpen,
   GraduationCap,
   Loader2,
+  LogOut,
   Moon,
   Play,
+  Plus,
   Search,
   ShieldCheck,
   Sparkles,
   Sun,
   Users,
+  UserCheck,
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { put } from "@vercel/blob/client"
@@ -55,11 +59,13 @@ type Resource = {
   createdAt: string
 }
 
-const types = ["All types", "Notes", "Textbooks", "PPTs", "Quiz", "Mid Exams", "Final Exams", "Other"]
+const types = ["All types", "Notes", "PPTs", "Mid Exams", "Final Exams", "Other"]
+const FOCUS_SECONDS = 25 * 60
 
 function requiresInstructor(type: string) {
   return ["ppt", "ppts", "quiz"].includes(type.trim().toLowerCase())
 }
+
 const TEXT_EXTENSIONS = ["txt", "md", "csv", "json", "xml", "js", "ts", "html", "css", "log"]
 
 function isPreviewable(mimeType: string, fileName?: string): boolean {
@@ -100,7 +106,6 @@ function getUploadConfig(): Promise<UploadConfig> {
     .catch((): UploadConfig => ({ mode: "server", access: "private", maxFileSize: 50 * 1024 * 1024 }))
   return uploadConfigPromise
 }
-const FOCUS_SECONDS = 25 * 60
 
 export function StudyCompanion() {
   const router = useRouter()
@@ -206,63 +211,6 @@ export function StudyCompanion() {
     [resources, activeCollege, activeDepartment, activeYear, activeSemester, type, query],
   )
 
-  const choose = (kind: string, value: string) => {
-    const nextSelection = normalizeAcademicSelection(
-      kind === "college" ? value : college || profile?.college || "",
-      kind === "department" ? value : department || profile?.department || "",
-      kind === "year" ? value : year || profile?.year || "",
-      kind === "semester" ? value : semester || profile?.semester || "",
-    )
-
-    if (profile && (kind === "college" || kind === "department" || kind === "year" || kind === "semester")) {
-      const nextProfile: StudentProfile = {
-        ...profile,
-        college: kind === "college" ? nextSelection.college : profile.college,
-        department: kind === "department" ? nextSelection.department : profile.department,
-        year: kind === "year" ? nextSelection.year : profile.year,
-        semester: kind === "semester" ? nextSelection.semester : profile.semester,
-      }
-
-      if (kind === "college") {
-        nextProfile.department = nextSelection.department
-        nextProfile.year = nextSelection.year
-        nextProfile.semester = nextSelection.semester
-      }
-
-      if (kind === "year") {
-        nextProfile.semester = nextSelection.semester
-      }
-
-      saveStudentProfile(nextProfile)
-      setProfile(nextProfile)
-      setCollege(nextProfile.college)
-      setDepartment(nextProfile.department)
-      setYear(nextProfile.year)
-      setSemester(nextProfile.semester)
-      return
-    }
-
-    if (kind === "college") {
-      setCollege(nextSelection.college)
-      setDepartment(nextSelection.department)
-      setYear(nextSelection.year)
-      setSemester(nextSelection.semester)
-      setType("All types")
-    }
-    if (kind === "department") {
-      setDepartment(value)
-      setYear("")
-      setSemester("")
-      setType("All types")
-    }
-    if (kind === "year") {
-      setYear(nextSelection.year)
-      setSemester(nextSelection.semester)
-      setType("All types")
-    }
-    if (kind === "semester") setSemester(value)
-  }
-
   const handleSignOut = () => {
     signOutStudent()
     setProfile(null)
@@ -276,239 +224,323 @@ export function StudyCompanion() {
 
   const clock = `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`
 
-  if (!ready) {
-    return null
-  }
-
-  if (!profile) {
-    return (
-      <main className="min-h-screen bg-background text-foreground">
-        <header className="sticky top-0 z-40 border-b border-border/70 bg-background/90 backdrop-blur-xl">
-          <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-4">
-            <div className="flex items-center gap-3 text-left">
-              <span className="flex size-10 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/20">
-                <BookOpen />
-              </span>
-              <span>
-                <span className="block font-semibold tracking-tight">AASTU Muslim Sisters</span>
-                <span className="hidden text-xs text-muted-foreground sm:block">Learn with purpose</span>
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon" aria-label="Toggle theme" onClick={() => setDark((v) => !v)}>
-                {dark ? <Sun /> : <Moon />}
-              </Button>
-            </div>
-          </div>
-        </header>
-
-        <div className="mx-auto max-w-7xl px-5 py-20 md:py-28">
-          <div className="relative overflow-hidden rounded-[2rem] border border-border bg-card p-8 shadow-xl md:p-12">
-            <div className="grid items-center gap-10 md:grid-cols-[1.1fr_.9fr]">
-              <div>
-                <h1 className="max-w-3xl text-balance text-5xl font-semibold leading-[1.05] tracking-[-0.04em] md:text-7xl">
-                  Study steadily.
-                  <br />
-                  <span className="text-primary">Grow together.</span>
-                </h1>
-                <p className="mt-6 max-w-xl text-pretty text-lg leading-8 text-muted-foreground">
-                  A calm, trusted space for Muslim sisters at AASTU to find notes, share what they know, and build a study rhythm that lasts.
-                </p>
-                <div className="mt-8 flex flex-wrap gap-3">
-                  <Button size="lg" onClick={() => router.push("/signin")}>
-                    Sign in
-                  </Button>
-                  <Button size="lg" variant="outline" onClick={() => router.push("/signup")}>
-                    Sign up
-                  </Button>
-                </div>
-              </div>
-
-              <div className="relative">
-                <div className="rounded-[2rem] bg-primary p-6 text-primary-foreground shadow-2xl shadow-primary/20 md:p-8">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="text-sm opacity-75">A little progress</p>
-                      <p className="mt-1 text-3xl font-semibold">Every day counts.</p>
-                    </div>
-                    <Flame className="size-7" />
-                  </div>
-                  <div className="mt-10 rounded-3xl bg-primary-foreground/10 p-5">
-                    <div className="flex items-center justify-between text-sm">
-                      <span>Weekly focus</span>
-                      <span>68%</span>
-                    </div>
-                    <div className="mt-3 h-2 rounded-full bg-primary-foreground/20">
-                      <div className="h-2 w-[68%] rounded-full bg-primary-foreground" />
-                    </div>
-                  </div>
-                </div>
-                <div className="absolute -bottom-5 -left-5 rounded-2xl border border-border bg-card p-4 shadow-xl">
-                  <div className="flex items-center gap-3">
-                    <div className="flex size-10 items-center justify-center rounded-xl bg-muted">
-                      <Users className="size-5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold">Shared by sisters</p>
-                      <p className="text-xs text-muted-foreground">Notes that help you move forward</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </main>
-    )
-  }
+  if (!ready) return null
 
   return (
-    <main className="min-h-screen bg-background pb-20 text-foreground md:pb-0">
-      <header className="sticky top-0 z-40 border-b border-border/70 bg-background/90 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-4">
-          <button onClick={() => setTab("home")} className="flex items-center gap-3 text-left">
-            <span className="flex size-10 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/20">
-              <BookOpen />
-            </span>
-            <span>
-              <span className="block font-semibold tracking-tight">AASTU Muslim Sisters</span>
-              <span className="hidden text-xs text-muted-foreground sm:block">Learn with purpose</span>
-            </span>
-          </button>
-          <nav className="hidden items-center gap-1 rounded-full bg-muted p-1 md:flex">
-            {(
-              [
-                ["home", "Home"],
-                ["resources", "Resources"],
-                ["share", "Share"],
-                ["dashboard", "My dashboard"],
-              ] as const
-            ).map(([key, label]) => (
-              <button
-                key={key}
-                onClick={() => setTab(key)}
-                className={`rounded-full px-4 py-2 text-sm transition ${tab === key ? "bg-background font-medium shadow-sm" : ""}`}
-              >
-                {label}
-              </button>
-            ))}
-          </nav>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleSignOut}
-              className="rounded-full border border-border bg-background px-3 py-2 text-sm font-medium transition hover:border-primary/50"
+    <main className="relative min-h-screen overflow-x-hidden bg-background text-foreground selection:bg-primary selection:text-primary-foreground">
+      {/* Canvas Lighting */}
+      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+        <div 
+          className="absolute -bottom-1/2 -left-1/2 h-[200%] w-[200%] opacity-35 blur-3xl"
+          style={{
+            background: "linear-gradient(45deg, transparent 40%, rgba(52, 211, 153, 0.3) 50%, transparent 60%)"
+          }}
+        />
+        <div 
+          className="absolute -bottom-1/2 -left-1/2 h-[200%] w-[200%] opacity-60"
+          style={{
+            background: "linear-gradient(45deg, transparent 49.6%, rgba(167, 243, 208, 0.7) 50%, transparent 50.4%)"
+          }}
+        />
+        <div className="absolute -bottom-20 -left-20 size-96 rounded-full bg-primary/10 blur-[120px]" />
+        <div className="absolute -top-20 -right-20 size-96 rounded-full bg-primary/10 blur-[120px]" />
+      </div>
+
+      {/* Header */}
+      <header className="sticky top-0 z-50 border-b border-border/40 bg-background/70 backdrop-blur-2xl transition-all">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-4">
+          <motion.button
+            whileHover={{ scale: 1.01 }}
+            whileTap={{ scale: 0.99 }}
+            onClick={() => setTab("home")}
+            className="flex items-center gap-3 text-left focus:outline-none"
+          >
+            <div className="relative flex size-9 items-center justify-center rounded-xl bg-gradient-to-tr from-primary to-primary/80 text-primary-foreground shadow-md shadow-primary/20">
+              <BookOpen className="size-4" />
+            </div>
+            <div>
+              <span className="block text-sm font-semibold tracking-tight text-foreground">AASTU Muslim Sisters</span>
+              <span className="block text-[11px] font-light text-muted-foreground">Learn with purpose</span>
+            </div>
+          </motion.button>
+
+          {profile && (
+            <nav className="hidden items-center gap-1 rounded-full border border-border/50 bg-muted/40 p-1.5 backdrop-blur-md md:flex">
+              {(
+                [
+                  ["home", "Home"],
+                  ["resources", "Resources"],
+                  ["share", "Share"],
+                  ["dashboard", "Dashboard"],
+                ] as const
+              ).map(([key, label]) => {
+                const isActive = tab === key
+                return (
+                  <button
+                    key={key}
+                    onClick={() => setTab(key)}
+                    className={`relative rounded-full px-5 py-1.5 text-xs font-light transition-colors ${
+                      isActive ? "text-primary-foreground font-normal" : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {isActive && (
+                      <motion.div
+                        layoutId="activeTabBadge"
+                        className="absolute inset-0 rounded-full bg-primary shadow-sm"
+                        transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                      />
+                    )}
+                    <span className="relative z-10">{label}</span>
+                  </button>
+                )
+              })}
+            </nav>
+          )}
+
+          <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Toggle theme"
+              onClick={() => setDark((v) => !v)}
+              className="rounded-full hover:bg-muted/50"
             >
-              Sign out
-            </button>
-            <Button variant="ghost" size="icon" aria-label="Toggle theme" onClick={() => setDark((v) => !v)}>
-              {dark ? <Sun /> : <Moon />}
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.div
+                  key={dark ? "dark" : "light"}
+                  initial={{ opacity: 0, rotate: -90 }}
+                  animate={{ opacity: 1, rotate: 0 }}
+                  exit={{ opacity: 0, rotate: 90 }}
+                  transition={{ duration: 0.15 }}
+                >
+                  {dark ? <Sun className="size-4 text-amber-400" /> : <Moon className="size-4 text-slate-700" />}
+                </motion.div>
+              </AnimatePresence>
             </Button>
-            <button
-              aria-label="Open profile"
-              onClick={() => setTab("profile")}
-              className="flex size-10 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground shadow-md shadow-primary/20"
-              title="Profile"
-            >
-              {profile.name?.charAt(0)?.toUpperCase() || "S"}
-            </button>
+
+            {profile ? (
+              <div className="flex items-center gap-2 border-l border-border/50 pl-3">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setTab("profile")}
+                  className="flex size-8 items-center justify-center rounded-full bg-primary text-xs font-medium text-primary-foreground shadow-sm ring-2 ring-primary/20"
+                  title="View Profile"
+                >
+                  {profile.name?.charAt(0)?.toUpperCase() || "S"}
+                </motion.button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleSignOut}
+                  title="Sign out"
+                  className="rounded-full text-muted-foreground hover:text-destructive"
+                >
+                  <LogOut className="size-4" />
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  className="rounded-full text-xs font-light hover:bg-muted/50"
+                  onClick={() => router.push("/signin")}
+                >
+                  Sign in
+                </Button>
+                <Button
+                  size="sm"
+                  className="rounded-full text-xs font-light shadow-sm shadow-primary/20"
+                  onClick={() => router.push("/signup")}
+                >
+                  Get started
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </header>
 
-      {tab === "home" && <Home onExplore={() => setTab("resources")} onTimer={() => setTab("dashboard")} />}
+      {/* Main Content Area */}
+      <div className="relative z-10 mx-auto max-w-7xl px-6 py-12 md:py-20 lg:py-24">
+        {!profile ? (
+          <div className="grid items-center gap-12 lg:grid-cols-[1.1fr_.9fr]">
+            {/* Left Column */}
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, ease: "easeOut" }}
+              className="flex flex-col items-start"
+            >
+              {/* Bolder Headline with Left-to-Right Entrance & Left-to-Right Text Light Shimmer */}
+              <h1 className="text-balance text-5xl font-semibold tracking-tight text-foreground md:text-6xl lg:text-7xl">
+                <motion.span
+                  initial={{ opacity: 0, x: -40 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.6, ease: "easeOut" }}
+                  className="block font-semibold"
+                >
+                  Study steadily.
+                </motion.span>
 
-      {tab === "resources" && (
-        <Resources
-          college={activeCollege}
-          department={activeDepartment}
-          year={activeYear}
-          semester={activeSemester}
-          type={type}
-          query={query}
-          filtered={filtered}
-          loading={loading}
-          loadError={loadError}
-          setQuery={setQuery}
-          setType={setType}
-          choose={choose}
-          onSaved={() => {
-            loadResources()
-          }}
-        />
-      )}
+                <motion.span
+                  initial={{ opacity: 0, x: -40 }}
+                  animate={{
+                    opacity: 1,
+                    x: 0,
+                  }}
+                  transition={{
+                    x: { duration: 0.6, delay: 0.2, ease: "easeOut" },
+                    opacity: { duration: 0.6, delay: 0.2, ease: "easeOut" },
+                  }}
+                  className="block font-bold inline-block text-primary"
+                >
+                  Grow together.
+                </motion.span>
+              </h1>
 
-      {tab === "share" && (
-        <ShareResource
-          college={activeCollege}
-          department={activeDepartment}
-          year={activeYear}
-          semester={activeSemester}
-          onSaved={(resource) => {
-            setResources((current) => [resource, ...current.filter((item) => item.id !== resource.id)])
-            setTab("resources")
-          }}
-        />
-      )}
+              <p className="mt-6 max-w-xl text-pretty text-base font-light leading-relaxed text-muted-foreground md:text-lg">
+                A calm, trusted space for Muslim sisters at AASTU to find course resources, share study material, and build consistency together.
+              </p>
 
-      {tab === "dashboard" && (
-        <Dashboard
-          clock={clock}
-          running={running}
-          setRunning={setRunning}
-          sessions={sessions}
-          setSessions={setSessions}
-          seconds={seconds}
-          setSeconds={setSeconds}
-          resourceCount={filtered.length}
-        />
-      )}
+              <div className="mt-8 flex flex-wrap items-center gap-4">
+                <Button
+                  size="lg"
+                  className="group rounded-full px-8 font-light shadow-md shadow-primary/20 transition-all hover:shadow-primary/30"
+                  onClick={() => router.push("/signin")}
+                >
+                  Sign in to access
+                  <ArrowRight className="ml-2 size-4 transition-transform group-hover:translate-x-1" />
+                </Button>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="rounded-full px-8 font-light hover:bg-muted/50"
+                  onClick={() => router.push("/signup")}
+                >
+                  Create account
+                </Button>
+              </div>
+            </motion.div>
 
-      {tab === "profile" && profile && (
-        <ProfileEditor
-          profile={profile}
-          onSaved={(nextProfile) => {
-            setProfile(nextProfile)
-            setCollege(nextProfile.college)
-            setDepartment(nextProfile.department)
-            setYear(nextProfile.year)
-            setSemester(nextProfile.semester)
-            setTab("resources")
-          }}
-        />
-      )}
+            {/* Right Column: Floating Container */}
+            <motion.div
+              animate={{ y: [0, -12, 0] }}
+              transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+              className="relative mx-auto w-full max-w-md lg:max-w-none"
+            >
+              <div className="rounded-3xl border border-border/50 bg-background/60 p-8 backdrop-blur-xl shadow-xl shadow-primary/5">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-xs font-light text-muted-foreground">Daily Momentum</p>
+                    <p className="mt-1 text-2xl font-normal text-foreground">Every session counts.</p>
+                  </div>
+                  <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                    <Flame className="size-5 text-amber-500" />
+                  </div>
+                </div>
 
-      <footer className="mx-auto mt-20 max-w-7xl border-t border-border px-5 py-8 text-sm text-muted-foreground">
-        <div className="flex flex-col justify-between gap-3 md:flex-row">
-          <span>Built for AASTU Muslim Sisters.</span>
-          <span className="flex items-center gap-2">
+                <div className="mt-6 rounded-2xl border border-border/40 bg-muted/30 p-5">
+                  <div className="flex items-center justify-between text-xs font-light">
+                    <span className="text-muted-foreground">Weekly Goal Progress</span>
+                    <span className="font-medium text-foreground">68%</span>
+                  </div>
+
+                  {/* Dynamic Progress Bar */}
+                  <div className="relative mt-3 h-2.5 w-full overflow-hidden rounded-full bg-muted">
+                    <motion.div
+                      initial={{ width: "0%" }}
+                      animate={{ width: ["60%", "72%", "68%"] }}
+                      transition={{ duration: 4, repeat: Infinity, repeatType: "reverse", ease: "easeInOut" }}
+                      className="relative h-full rounded-full bg-primary"
+                    >
+                      <motion.div
+                        animate={{ x: ["-100%", "200%"] }}
+                        transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+                        className="absolute inset-0 w-1/2 bg-gradient-to-r from-transparent via-white/40 to-transparent"
+                      />
+                    </motion.div>
+                  </div>
+                </div>
+
+                {/* Badge inside the container */}
+                <div className="mt-6 flex items-center gap-3 rounded-2xl border border-border/40 bg-background/40 p-3.5 backdrop-blur-sm">
+                  <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <Users className="size-4" />
+                  </div>
+                  <span className="text-xs font-light text-muted-foreground">
+                    Shared and verified by sisters across AASTU departments
+                  </span>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        ) : (
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={tab}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }}
+              transition={{ duration: 0.2 }}
+            >
+              {tab === "home" && (
+                <div className="grid gap-6 md:grid-cols-3">
+                  <div className="rounded-3xl border border-border/50 bg-background/50 p-6 backdrop-blur-md">
+                    <div className="flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                      <FolderOpen className="size-6" />
+                    </div>
+                    <h3 className="mt-4 text-lg font-normal">Course Repository</h3>
+                    <p className="mt-2 text-sm font-light text-muted-foreground">
+                      Access department-specific slides, mid-term tests, and lecture notes tailored to your current semester.
+                    </p>
+                    <Button variant="link" className="mt-2 p-0 text-primary font-light" onClick={() => setTab("resources")}>
+                      Browse resources &rarr;
+                    </Button>
+                  </div>
+
+                  <div className="rounded-3xl border border-border/50 bg-background/50 p-6 backdrop-blur-md">
+                    <div className="flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                      <Clock3 className="size-6" />
+                    </div>
+                    <h3 className="mt-4 text-lg font-normal">Focus Timer</h3>
+                    <p className="mt-2 text-sm font-light text-muted-foreground">
+                      Maintain concentration using structured Pomodoro focus intervals to build a sustained daily study rhythm.
+                    </p>
+                    <Button variant="link" className="mt-2 p-0 text-primary font-light" onClick={() => setTab("dashboard")}>
+                      Open focus timer &rarr;
+                    </Button>
+                  </div>
+
+                  <div className="rounded-3xl border border-border/50 bg-background/50 p-6 backdrop-blur-md">
+                    <div className="flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                      <Plus className="size-6" />
+                    </div>
+                    <h3 className="mt-4 text-lg font-normal">Share Knowledge</h3>
+                    <p className="mt-2 text-sm font-light text-muted-foreground">
+                      Upload your notes, summary sheets, and practice exam sets to support fellow sisters across departments.
+                    </p>
+                    <Button variant="link" className="mt-2 p-0 text-primary font-light" onClick={() => setTab("share")}>
+                      Upload material &rarr;
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          </AnimatePresence>
+        )}
+      </div>
+
+      {/* Footer */}
+      <footer className="relative z-10 mx-auto mt-12 max-w-7xl border-t border-border/40 px-6 py-8 text-xs font-light text-muted-foreground">
+        <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
+          <span>&copy; AASTU Muslim Sisters Academic Platform</span>
+          <span className="flex items-center gap-1.5">
             <ShieldCheck className="size-4 text-primary" />
-            A trusted space to learn and share
+            Verified &amp; Moderated Peer Space
           </span>
         </div>
       </footer>
-
-      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 p-1 backdrop-blur-xl md:hidden">
-        <div className="mx-auto flex max-w-md items-center justify-between gap-1 px-2">
-          {(
-            [
-              ["home", "Home"],
-              ["resources", "Resources"],
-              ["share", "Share"],
-              ["dashboard", "Dashboard"],
-            ] as const
-          ).map(([key, label]) => (
-            <button
-              key={key}
-              onClick={() => setTab(key)}
-              className={`flex-1 rounded-xl px-2 py-2 text-center text-xs font-medium transition ${
-                tab === key ? "bg-primary text-primary-foreground" : "text-muted-foreground"
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      </nav>
     </main>
   )
 }
@@ -1149,7 +1181,7 @@ function ShareResource({
           const blob = await put(storageName, file, {
             access: uploadConfig.access,
             token: clientToken,
-            onUploadProgress: ({ percentage }) => {
+            onUploadProgress: ({ percentage }: { percentage: number }) => {
               setShareMsg(`Uploading ${Math.round(percentage)}%...`)
             },
           })
