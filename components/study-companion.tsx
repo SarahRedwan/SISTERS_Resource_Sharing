@@ -344,14 +344,13 @@ export function StudyCompanion() {
               <div className="flex items-center gap-2">
                 <Button
                   variant="ghost"
-                  className="rounded-full text-xs font-medium hover:bg-muted/50"
+                  className="h-9 rounded-full px-5 text-sm font-medium hover:bg-muted/50"
                   onClick={() => router.push("/signin")}
                 >
                   Sign in
                 </Button>
                 <Button
-                  size="sm"
-                  className="rounded-full text-xs font-semibold shadow-sm shadow-primary/20"
+                  className="h-9 rounded-full px-6 text-sm font-semibold shadow-sm shadow-primary/20"
                   onClick={() => router.push("/signup")}
                 >
                   Get started
@@ -382,6 +381,24 @@ export function StudyCompanion() {
 
   return (
     <main className="flex min-h-screen flex-col bg-background pb-20 text-foreground md:pb-0">
+      {/* Canvas Lighting */}
+      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+        <div
+          className="absolute -bottom-1/2 -left-1/2 h-[200%] w-[200%] opacity-35 blur-3xl"
+          style={{
+            background: "linear-gradient(45deg, transparent 40%, rgba(52, 211, 153, 0.3) 50%, transparent 60%)"
+          }}
+        />
+        <div
+          className="absolute -bottom-1/2 -left-1/2 h-[200%] w-[200%] opacity-60"
+          style={{
+            background: "linear-gradient(45deg, transparent 49.6%, rgba(167, 243, 208, 0.7) 50%, transparent 50.4%)"
+          }}
+        />
+        <div className="absolute -bottom-20 -left-20 size-96 rounded-full bg-primary/10 blur-[120px]" />
+        <div className="absolute -top-20 -right-20 size-96 rounded-full bg-primary/10 blur-[120px]" />
+      </div>
+
       <header className="sticky top-0 z-40 border-b border-border/70 bg-background/90 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-4">
           <button onClick={() => setTab("home")} className="flex items-center gap-3 text-left">
@@ -433,6 +450,7 @@ export function StudyCompanion() {
         </div>
       </header>
 
+      <div className="relative z-10 flex w-full flex-1 flex-col">
       {tab === "home" && (
         <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-1 flex-col justify-center px-6 py-10 md:py-14">
           <LandingHero showAuthButtons={false} />
@@ -498,8 +516,9 @@ export function StudyCompanion() {
           }}
         />
       )}
+      </div>
 
-      <footer className="mx-auto mt-auto w-full max-w-7xl border-t border-border px-5 py-8 text-sm text-muted-foreground">
+      <footer className="relative z-10 mx-auto mt-auto w-full max-w-7xl border-t border-border px-5 py-8 text-sm text-muted-foreground">
         <div className="flex flex-col justify-between gap-3 md:flex-row">
           <span>Built for AASTU Muslim Sisters.</span>
           <span className="flex items-center gap-2">
@@ -576,16 +595,16 @@ function LandingHero({ showAuthButtons = true }: { showAuthButtons?: boolean }) 
           <div className="mt-8 flex flex-wrap items-center gap-4">
             <Button
               size="lg"
-              className="group rounded-full px-8 font-semibold shadow-md shadow-primary/20 transition-all hover:shadow-primary/30"
+              className="group h-12 rounded-full px-10 text-base font-semibold shadow-md shadow-primary/20 transition-all hover:shadow-primary/30"
               onClick={() => router.push("/signin")}
             >
               Sign in to access
-              <ArrowRight className="ml-2 size-4 transition-transform group-hover:translate-x-1" />
+              <ArrowRight className="ml-2 size-5 transition-transform group-hover:translate-x-1" />
             </Button>
             <Button
               size="lg"
               variant="outline"
-              className="rounded-full px-8 font-semibold hover:bg-muted/50"
+              className="h-12 rounded-full px-10 text-base font-semibold hover:bg-muted/50"
               onClick={() => router.push("/signup")}
             >
               Create account
