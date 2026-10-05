@@ -1,8 +1,8 @@
-# 🌸 AASTU Muslim Sisters — Resource Sharing Platform
+# 🌸 AASTU Muslims — Resource Sharing Platform
 
-> **A simple, organized academic resource hub for AASTU Muslim Sisters.**
+> **A simple, organized academic resource hub for AASTU Muslims.**
 
-The **AASTU Muslim Sisters Resource Sharing Platform** is a community-driven academic website created for the girls' **Jemaea** at Addis Ababa Science and Technology University (AASTU).
+The **AASTU Muslims Resource Sharing Platform** is a community-driven academic website created for the Muslim student community at Addis Ababa Science and Technology University (AASTU).
 
 The idea came from a simple problem:
 
@@ -10,7 +10,7 @@ The idea came from a simple problem:
 
 Notes, assignments, midterm exams, final exams, presentations, and other resources could easily get buried among hundreds of Telegram messages.
 
-This platform provides a **centralized and organized place** where AASTU Muslim Sisters can find, share, and manage academic resources according to their college, department, year, and category.
+This platform provides a **centralized and organized place** where AASTU Muslims can find, share, and manage academic resources according to their college, department, year, and category.
 
 ---
 
@@ -18,7 +18,7 @@ This platform provides a **centralized and organized place** where AASTU Muslim 
 
 Telegram is useful for communication, but it is not designed to be an academic resource management system.
 
-As resources were shared in Jemaea Telegram groups:
+As resources were shared in Telegram groups:
 
 * 📂 Resources became scattered across many messages.
 * 🔎 Finding an old resource became difficult.
@@ -99,7 +99,7 @@ The platform is designed to be:
 The platform follows a simple structure:
 
 ```text
-AASTU Muslim Sisters
+AASTU Muslims
         │
         ▼
      College
@@ -129,7 +129,7 @@ They can simply navigate through the academic structure and find the material th
 
 ## 🌱 Why We Built It
 
-This project was created with the **AASTU Muslim Sisters Jemaea** in mind.
+This project was created with the **AASTU Muslim student community** in mind.
 
 The motivation wasn't to replace Telegram.
 
@@ -196,7 +196,7 @@ The project is built using modern web technologies.
 ## 📁 Project Structure
 
 ```text
-aastu-muslim-sisters/
+SISTERS_Resource_Sharing/
 │
 ├── app/
 │   ├── ...
@@ -285,7 +285,7 @@ http://localhost:3000
 
 ## 🤝 Contribution
 
-This platform is intended to grow with the AASTU Muslim Sisters community.
+This platform is intended to grow with the AASTU Muslims community.
 
 Students can contribute by:
 
@@ -315,7 +315,7 @@ Please:
 
 ## 🌸 Vision
 
-The long-term vision is to build a reliable academic space where AASTU Muslim Sisters can easily access the resources they need throughout their university journey.
+The long-term vision is to build a reliable academic space where AASTU Muslims can easily access the resources they need throughout their university journey.
 
 What started as a simple problem with resources getting lost in Telegram can become a structured academic community platform.
 
@@ -334,7 +334,7 @@ Students struggle to find them
 ### To organized learning...
 
 ```text
-🌸 AASTU Muslim Sisters Platform
+🌸 AASTU Muslims Platform
              ↓
           College
              ↓
@@ -351,11 +351,11 @@ Students struggle to find them
 
 ## 💡 The Idea in One Sentence
 
-> **A centralized academic resource-sharing platform created for AASTU Muslim Sisters to make finding and sharing study materials easier, faster, and more organized than relying on scattered Telegram messages.**
+> **A centralized academic resource-sharing platform created for AASTU Muslims to make finding and sharing study materials easier, faster, and more organized than relying on scattered Telegram messages.**
 
 ---
 
-## ❤️ Made for the AASTU Muslim Sisters Jemaea
+## ❤️ Made for the AASTU Muslim Student Community
 
 Built with the intention of making students' academic lives a little easier.
 
@@ -365,8 +365,8 @@ Built with the intention of making students' academic lives a little easier.
 
 ### 📌 Project
 
-**AASTU Muslim Sisters Resource Sharing Platform**
+**AASTU Muslims Resource Sharing Platform**
 
 **Repository:** `SISTERS_Resource_Sharing`
 
-**Purpose:** Academic resource sharing and study support for AASTU Muslim Sisters.
+**Purpose:** Academic resource sharing and study support for AASTU Muslims.

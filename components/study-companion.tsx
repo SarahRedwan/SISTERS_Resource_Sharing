@@ -399,7 +399,7 @@ export function StudyCompanion() {
                 <BookOpen className="size-4" />
               </div>
               <div>
-                <span className="block text-sm font-semibold tracking-tight text-foreground">AASTU Muslim Sisters</span>
+                <span className="block text-sm font-semibold tracking-tight text-foreground">AASTU Muslims</span>
                 <span className="block text-[11px] font-medium text-muted-foreground">Learn with purpose</span>
               </div>
             </motion.button>
@@ -452,7 +452,7 @@ export function StudyCompanion() {
         {/* Footer */}
         <footer className="relative z-10 mx-auto mt-12 max-w-7xl border-t border-border/40 px-6 py-8 text-xs font-light text-muted-foreground">
           <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-            <span>&copy; AASTU Muslim Sisters Academic Platform</span>
+            <span>&copy; AASTU Muslims Resource Sharing</span>
             <span className="flex items-center gap-1.5">
               <ShieldCheck className="size-4 text-primary" />
               Verified &amp; Moderated Peer Space
@@ -490,7 +490,7 @@ export function StudyCompanion() {
               <BookOpen />
             </span>
             <span>
-              <span className="block font-semibold tracking-tight">AASTU Muslim Sisters</span>
+              <span className="block font-semibold tracking-tight">AASTU Muslims</span>
               <span className="hidden text-xs text-muted-foreground sm:block">Learn with purpose</span>
             </span>
           </button>
@@ -612,7 +612,7 @@ export function StudyCompanion() {
 
       <footer className="relative z-10 mx-auto mt-auto w-full max-w-7xl border-t border-border px-5 py-8 text-sm text-muted-foreground">
         <div className="flex flex-col justify-between gap-3 md:flex-row">
-          <span>Built for AASTU Muslim Sisters.</span>
+          <span>Built for AASTU Muslims.</span>
           <span className="flex items-center gap-2">
             <ShieldCheck className="size-4 text-primary" />
             A trusted space to learn and share
@@ -680,7 +680,7 @@ function LandingHero({ showAuthButtons = true }: { showAuthButtons?: boolean }) 
         </h1>
 
         <p className="mt-6 max-w-xl text-pretty text-base font-normal leading-relaxed text-muted-foreground md:text-lg">
-          A calm, trusted space for Muslim sisters at AASTU to find course resources, share study material, and build consistency together.
+              A calm, trusted space for Muslim students at AASTU to find course resources, share study material, and build consistency together.
         </p>
 
         {showAuthButtons && (
@@ -751,7 +751,7 @@ function LandingHero({ showAuthButtons = true }: { showAuthButtons?: boolean }) 
               <Users className="size-4" />
             </div>
             <span className="text-xs font-medium text-muted-foreground">
-              Shared and verified by sisters across AASTU departments
+              Shared and verified by students across AASTU departments
             </span>
           </div>
         </div>
@@ -772,7 +772,7 @@ function Home({ onExplore, onTimer }: { onExplore: () => void; onTimer: () => vo
               <span className="text-primary">Grow together.</span>
             </h1>
             <p className="mt-6 max-w-xl text-pretty text-lg leading-8 text-muted-foreground">
-              A calm, trusted space for Muslim sisters at AASTU to find notes, share what they know, and build a study
+              A calm, trusted space for Muslim students at AASTU to find notes, share what they know, and build a study
               rhythm that lasts.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
@@ -809,7 +809,7 @@ function Home({ onExplore, onTimer }: { onExplore: () => void; onTimer: () => vo
                   <Users className="size-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold">Shared by sisters</p>
+                  <p className="text-sm font-semibold">Shared by students</p>
                   <p className="text-xs text-muted-foreground">Notes that help you move forward</p>
                 </div>
               </div>
@@ -1191,7 +1191,7 @@ function Resources(props: {
           <div className="col-span-full rounded-3xl border border-dashed border-border p-12 text-center">
             <FolderOpen className="mx-auto size-8 text-primary" />
             <h3 className="mt-4 font-semibold">No resources yet</h3>
-            <p className="mt-2 text-sm text-muted-foreground">Try another filter or be the first sister to share something.</p>
+            <p className="mt-2 text-sm text-muted-foreground">Try another filter or be the first to share something.</p>
           </div>
         )}
         {!loading && !loadError && college && filtered.length === 0 && (query || type !== "All types") && (
@@ -1418,7 +1418,7 @@ function ShareResource({
     <div className="mx-auto max-w-4xl px-5 py-10">
       <div className="max-w-2xl">
         <p className="text-sm font-medium text-primary">Share resource</p>
-        <h1 className="mt-2 text-4xl font-semibold tracking-tight md:text-5xl">Upload what helps your sisters.</h1>
+        <h1 className="mt-2 text-4xl font-semibold tracking-tight md:text-5xl">Upload what helps your fellow students.</h1>
         <p className="mt-3 leading-7 text-muted-foreground">Add notes, exams, presentations, and study materials for the right academic path.</p>
       </div>
 

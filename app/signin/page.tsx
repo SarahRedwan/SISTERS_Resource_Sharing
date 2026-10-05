@@ -50,7 +50,7 @@ export default function SignInPage() {
             <BookOpen className="size-5" />
           </span>
           <div>
-            <p className="text-lg font-semibold">AASTU Muslim Sisters</p>
+            <p className="text-lg font-semibold">AASTU Muslims</p>
             <p className="text-sm text-muted-foreground">Welcome back</p>
           </div>
         </div>

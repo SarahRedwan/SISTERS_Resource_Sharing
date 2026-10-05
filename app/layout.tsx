@@ -3,8 +3,8 @@ import type { Metadata, Viewport } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'AASTU Muslim Sisters | Study Companion',
-  description: 'A trusted academic space for AASTU Muslim Sisters to share notes, find resources, and make steady progress.',
+  title: 'AASTU Muslims | Resource Sharing',
+  description: 'A trusted academic space for AASTU Muslims to share notes, find resources, and make steady progress.',
   
 }
 
